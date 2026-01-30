@@ -33,6 +33,10 @@ set(VIZENGINE_SOURCES
     # Renderer
     src/VizEngine/Renderer/Skybox.cpp
     src/VizEngine/Renderer/Bloom.cpp
+    src/VizEngine/Renderer/RenderMaterial.cpp
+    src/VizEngine/Renderer/PBRMaterial.cpp
+    src/VizEngine/Renderer/UnlitMaterial.cpp
+    src/VizEngine/Renderer/MaterialFactory.cpp
     
     # GUI
     src/VizEngine/GUI/UIManager.cpp
@@ -82,6 +86,11 @@ set(VIZENGINE_HEADERS
     # Renderer headers
     src/VizEngine/Renderer/Skybox.h
     src/VizEngine/Renderer/Bloom.h
+    src/VizEngine/Renderer/MaterialParameter.h
+    src/VizEngine/Renderer/RenderMaterial.h
+    src/VizEngine/Renderer/PBRMaterial.h
+    src/VizEngine/Renderer/UnlitMaterial.h
+    src/VizEngine/Renderer/MaterialFactory.h
     
     # GUI headers
     src/VizEngine/GUI/UIManager.h

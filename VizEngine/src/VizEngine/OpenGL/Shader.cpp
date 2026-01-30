@@ -212,6 +212,11 @@ namespace VizEngine
 		glUniformMatrix4fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]);
 	}
 
+	void Shader::SetMatrix3fv(const std::string& name, const glm::mat3& matrix)
+	{
+		glUniformMatrix3fv(GetUniformLocation(name), 1, GL_FALSE, &matrix[0][0]);
+	}
+
 	int Shader::GetUniformLocation(const std::string& name)
 	{
 		if (m_LocationCache.find(name) != m_LocationCache.end())
