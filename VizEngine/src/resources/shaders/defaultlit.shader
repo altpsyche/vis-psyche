@@ -90,6 +90,7 @@ uniform samplerCube u_PrefilteredMap;
 uniform sampler2D u_BRDF_LUT;
 uniform float u_MaxReflectionLOD;
 uniform bool u_UseIBL;
+uniform float u_IBLIntensity;  // Controls strength of environment lighting (default 1.0)
 
 // ============================================================================
 // Constants
@@ -363,7 +364,7 @@ void main()
         vec3 specularIBL = prefilteredColor * (F0 * envBRDF.x + envBRDF.y);
         
         // ----- Combine -----
-        ambient = (kD_IBL * diffuseIBL + specularIBL) * u_AO;
+        ambient = (kD_IBL * diffuseIBL + specularIBL) * u_AO * u_IBLIntensity;
     }
     else
     {

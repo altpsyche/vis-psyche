@@ -805,7 +805,7 @@ public:
 		uiManager.Text("Point Lights (4x)");
 		
 		// Light intensity control (all lights share same intensity)
-		if (uiManager.SliderFloat("Intensity", &m_PBRLightIntensity, 50.0f, 1000.0f))
+		if (uiManager.SliderFloat("Intensity", &m_PBRLightIntensity, 0.0f, 1000.0f))
 		{
 			for (int i = 0; i < 4; ++i)
 			{
@@ -870,6 +870,7 @@ public:
 		// =========================================================================
 		uiManager.StartWindow("IBL");
 		uiManager.Checkbox("Use IBL", &m_UseIBL);
+		uiManager.SliderFloat("IBL Intensity", &m_IBLIntensity, 0.0f, 2.0f);
 
 		if (m_IrradianceMap && m_PrefilteredMap && m_BRDFLut)
 		{
@@ -1211,7 +1212,7 @@ private:
 		// Set directional light
 		m_DefaultLitShader->SetBool("u_UseDirLight", true);
 		m_DefaultLitShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
-		m_DefaultLitShader->SetVec3("u_DirLightColor", m_Light.Diffuse * 2.0f);
+		m_DefaultLitShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
 		
 		// Set shadow mapping uniforms
 		m_DefaultLitShader->SetMatrix4fv("u_LightSpaceMatrix", m_LightSpaceMatrix);
@@ -1232,10 +1233,12 @@ private:
 			m_DefaultLitShader->SetInt("u_BRDF_LUT", 7);
 			m_DefaultLitShader->SetFloat("u_MaxReflectionLOD", 4.0f);
 			m_DefaultLitShader->SetBool("u_UseIBL", true);
+			m_DefaultLitShader->SetFloat("u_IBLIntensity", m_IBLIntensity);
 		}
 		else
 		{
 			m_DefaultLitShader->SetBool("u_UseIBL", false);
+			m_DefaultLitShader->SetFloat("u_IBLIntensity", 0.0f);
 		}
 	}
 
@@ -1299,6 +1302,7 @@ private:
 	std::shared_ptr<VizEngine::Texture> m_PrefilteredMap;
 	std::shared_ptr<VizEngine::Texture> m_BRDFLut;
 	bool m_UseIBL = true;
+	float m_IBLIntensity = 0.3f;  // Lower default to balance direct vs ambient lighting
 
 	// PBR Rendering (Chapter 33)
 	std::unique_ptr<VizEngine::Shader> m_DefaultLitShader;
@@ -1310,12 +1314,12 @@ private:
 		glm::vec3( 10.0f, -10.0f, 10.0f)
 	};
 	glm::vec3 m_PBRLightColors[4] = {
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f),
-		glm::vec3(300.0f, 300.0f, 300.0f)
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f),
+		glm::vec3(30.0f, 30.0f, 30.0f)
 	};
-	float m_PBRLightIntensity = 300.0f;
+	float m_PBRLightIntensity = 30.0f;
 	glm::vec3 m_PBRLightColor = glm::vec3(1.0f);  // White light
 
 	// HDR Pipeline (Chapter 35)
@@ -1336,7 +1340,7 @@ private:
 	// Post-Processing (Chapter 36)
 	std::unique_ptr<VizEngine::Bloom> m_Bloom;
 	bool m_EnableBloom = true;
-	float m_BloomThreshold = 1.0f;
+	float m_BloomThreshold = 1.5f;
 	float m_BloomKnee = 0.5f;
 	float m_BloomIntensity = 0.04f;
 	int m_BloomBlurPasses = 5;
