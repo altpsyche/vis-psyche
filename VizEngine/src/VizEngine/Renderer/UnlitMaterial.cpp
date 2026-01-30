@@ -32,6 +32,7 @@ namespace VizEngine
         }
         else
         {
+            SetTexture("u_Texture", nullptr, 0);
             SetBool("u_UseTexture", false);
         }
     }

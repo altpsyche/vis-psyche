@@ -901,6 +901,11 @@ public:
 		{
 			uiManager.Text("IBL maps not generated!");
 		}
+
+		uiManager.Separator();
+		uiManager.Text("Lower Hemisphere");
+		uiManager.ColorEdit3("Ground Color", &m_LowerHemisphereColor.x);
+		uiManager.SliderFloat("Ground Intensity", &m_LowerHemisphereIntensity, 0.0f, 2.0f);
 		uiManager.EndWindow();
 
 		// =========================================================================
@@ -1034,11 +1039,23 @@ public:
 						}
 						else
 						{
-							// Success - swap in new resources
-							m_HDRFramebuffer = newFramebuffer;
-							m_HDRColorTexture = newColorTexture;
-							m_HDRDepthTexture = newDepthTexture;
-							m_HDREnabled = true;
+							// Success - validate tone-mapping resources before enabling HDR
+							const bool hdrResourcesOk =
+								m_ToneMappingShader && m_ToneMappingShader->IsValid() && m_FullscreenQuad;
+
+							if (hdrResourcesOk)
+							{
+								// Swap in new resources
+								m_HDRFramebuffer = newFramebuffer;
+								m_HDRColorTexture = newColorTexture;
+								m_HDRDepthTexture = newDepthTexture;
+								m_HDREnabled = true;
+							}
+							else
+							{
+								VP_WARN("HDR framebuffer resized, but tone-mapping resources are missing; keeping HDR disabled.");
+								m_HDREnabled = false;
+							}
 						}
 					}
 
@@ -1236,14 +1253,23 @@ private:
 		shader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
 		shader->SetVec3("u_DirLightColor", m_Light.Diffuse);
 
-		// Shadow mapping (use standard texture slots)
-		m_PBRMaterial->SetLightSpaceMatrix(m_LightSpaceMatrix);
-		m_PBRMaterial->SetShadowMap(m_ShadowMapDepth);
-		m_PBRMaterial->SetUseShadows(true);
+		// Shadow mapping (only enable if shadow map resource is valid)
+		if (m_ShadowMapDepth)
+		{
+			m_PBRMaterial->SetLightSpaceMatrix(m_LightSpaceMatrix);
+			m_PBRMaterial->SetShadowMap(m_ShadowMapDepth);
+			m_PBRMaterial->SetUseShadows(true);
+		}
+		else
+		{
+			m_PBRMaterial->SetShadowMap(nullptr);
+			m_PBRMaterial->SetUseShadows(false);
+		}
 
-		// IBL
-		m_PBRMaterial->SetUseIBL(m_UseIBL);
-		if (m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut)
+		// IBL (only enable if all IBL resources are valid)
+		const bool iblResourcesValid = m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut;
+		m_PBRMaterial->SetUseIBL(iblResourcesValid);
+		if (iblResourcesValid)
 		{
 			m_PBRMaterial->SetIrradianceMap(m_IrradianceMap);
 			m_PBRMaterial->SetPrefilteredMap(m_PrefilteredMap);
@@ -1255,6 +1281,10 @@ private:
 		{
 			shader->SetFloat("u_IBLIntensity", 0.0f);
 		}
+
+		// Lower hemisphere fallback (prevents black reflections on flat surfaces)
+		m_PBRMaterial->SetLowerHemisphereColor(m_LowerHemisphereColor);
+		m_PBRMaterial->SetLowerHemisphereIntensity(m_LowerHemisphereIntensity);
 	}
 
 	// Scene
@@ -1318,6 +1348,10 @@ private:
 	std::shared_ptr<VizEngine::Texture> m_BRDFLut;
 	bool m_UseIBL = true;
 	float m_IBLIntensity = 0.3f;  // Lower default to balance direct vs ambient lighting
+
+	// Lower hemisphere fallback (prevents black reflections on flat surfaces)
+	glm::vec3 m_LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);  // Slightly blue-ish ground
+	float m_LowerHemisphereIntensity = 0.5f;
 
 	// PBR Rendering (Chapter 33)
 	std::shared_ptr<VizEngine::Shader> m_DefaultLitShader;

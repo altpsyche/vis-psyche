@@ -63,6 +63,12 @@ namespace VizEngine
         void SetBRDFLUT(std::shared_ptr<Texture> brdfLut);
         void SetUseIBL(bool useIBL);
 
+        // Lower hemisphere fallback (prevents black reflections on flat surfaces)
+        void SetLowerHemisphereColor(const glm::vec3& color);
+        glm::vec3 GetLowerHemisphereColor() const;
+        void SetLowerHemisphereIntensity(float intensity);
+        float GetLowerHemisphereIntensity() const;
+
         // =====================================================================
         // Shadow Mapping
         // =====================================================================
@@ -102,5 +108,9 @@ namespace VizEngine
         bool m_UseShadows = false;
         bool m_HasAlbedoTexture = false;
         bool m_HasNormalTexture = false;
+
+        // Lower hemisphere fallback
+        glm::vec3 m_LowerHemisphereColor = glm::vec3(0.1f, 0.1f, 0.15f);  // Slightly blue-ish ground color
+        float m_LowerHemisphereIntensity = 0.5f;  // Default to half intensity
     };
 }

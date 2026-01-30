@@ -19,6 +19,10 @@ namespace VizEngine
         SetBool("u_UseNormalMap", false);
         SetBool("u_UseIBL", false);
         SetBool("u_UseShadows", false);
+
+        // Lower hemisphere defaults (prevents black reflections on flat surfaces)
+        SetVec3("u_LowerHemisphereColor", m_LowerHemisphereColor);
+        SetFloat("u_LowerHemisphereIntensity", m_LowerHemisphereIntensity);
     }
 
     // =========================================================================
@@ -174,6 +178,28 @@ namespace VizEngine
     {
         m_UseIBL = useIBL;
         SetBool("u_UseIBL", useIBL);
+    }
+
+    void PBRMaterial::SetLowerHemisphereColor(const glm::vec3& color)
+    {
+        m_LowerHemisphereColor = color;
+        SetVec3("u_LowerHemisphereColor", color);
+    }
+
+    glm::vec3 PBRMaterial::GetLowerHemisphereColor() const
+    {
+        return m_LowerHemisphereColor;
+    }
+
+    void PBRMaterial::SetLowerHemisphereIntensity(float intensity)
+    {
+        m_LowerHemisphereIntensity = glm::clamp(intensity, 0.0f, 2.0f);
+        SetFloat("u_LowerHemisphereIntensity", m_LowerHemisphereIntensity);
+    }
+
+    float PBRMaterial::GetLowerHemisphereIntensity() const
+    {
+        return m_LowerHemisphereIntensity;
     }
 
     // =========================================================================

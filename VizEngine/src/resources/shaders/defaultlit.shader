@@ -93,6 +93,10 @@ uniform float u_MaxReflectionLOD;
 uniform bool u_UseIBL;
 uniform float u_IBLIntensity;  // Controls strength of environment lighting (default 1.0)
 
+// Lower hemisphere fallback (prevents black reflections on flat surfaces)
+uniform vec3 u_LowerHemisphereColor;  // Color for reflections pointing below horizon
+uniform float u_LowerHemisphereIntensity;  // Blend intensity (0 = off, 1 = full)
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -216,6 +220,61 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+// ----------------------------------------------------------------------------
+// Environment Reflection Fallback
+// Provides a minimum reflection floor to prevent pure black reflections on
+// flat metallic surfaces. Works in two ways:
+// 1. Blends in fallback color for downward-facing reflections (below horizon)
+// 2. Adds minimum ambient to ALL dark reflections (prevents black regardless of direction)
+// ----------------------------------------------------------------------------
+vec3 SampleEnvironmentWithFallback(samplerCube envMap, vec3 direction, float lod)
+{
+    vec3 envColor = textureLod(envMap, direction, lod).rgb;
+
+    // Calculate luminance of the environment sample
+    float envLuminance = dot(envColor, vec3(0.2126, 0.7152, 0.0722));
+
+    // Fallback color (what we blend in when environment is dark)
+    vec3 fallbackColor = u_LowerHemisphereColor;
+
+    // Factor 1: How much the direction points below horizon
+    // direction.y < 0 means pointing below horizon
+    float downFactor = max(-direction.y, 0.0);  // 0 at horizon, 1 pointing straight down
+    downFactor = smoothstep(0.0, 0.5, downFactor);
+
+    // Factor 2: How dark is the environment sample (inverse luminance)
+    // This ensures even horizontal reflections into dark areas get some color
+    float darknessFactor = 1.0 - smoothstep(0.0, 0.1, envLuminance);
+
+    // Combine factors: use whichever is stronger
+    float blendFactor = max(downFactor, darknessFactor * 0.7) * u_LowerHemisphereIntensity;
+
+    return mix(envColor, fallbackColor, blendFactor);
+}
+
+vec3 SampleIrradianceWithFallback(samplerCube irrMap, vec3 normal)
+{
+    vec3 irrColor = texture(irrMap, normal).rgb;
+
+    // Calculate luminance
+    float irrLuminance = dot(irrColor, vec3(0.2126, 0.7152, 0.0722));
+
+    // Fallback color (dimmer for diffuse)
+    vec3 fallbackColor = u_LowerHemisphereColor * 0.5;
+
+    // Factor 1: Normals pointing down
+    float downFactor = max(-normal.y, 0.0);
+    downFactor = smoothstep(0.0, 0.5, downFactor);
+
+    // Factor 2: Dark irradiance samples
+    float darknessFactor = 1.0 - smoothstep(0.0, 0.05, irrLuminance);
+
+    // Combine factors
+    float blendFactor = max(downFactor, darknessFactor * 0.5) * u_LowerHemisphereIntensity;
+
+    return mix(irrColor, fallbackColor, blendFactor);
 }
 
 // ============================================================================
@@ -347,23 +406,31 @@ void main()
         // Use Fresnel with roughness for IBL to account for surface roughness
         vec3 kS_IBL = FresnelSchlickRoughness(max(dot(N, V), 0.0), F0, u_Roughness);
         vec3 kD_IBL = (vec3(1.0) - kS_IBL) * (1.0 - u_Metallic);
-        
-        vec3 irradiance = texture(u_IrradianceMap, N).rgb;
+
+        // Sample irradiance with lower hemisphere fallback
+        vec3 irradiance = SampleIrradianceWithFallback(u_IrradianceMap, N);
         vec3 diffuseIBL = irradiance * albedo;
-        
+
         // ----- Specular IBL -----
         vec3 R = reflect(-V, N);
-        
-        // Sample pre-filtered environment at roughness-appropriate mip level
-        vec3 prefilteredColor = textureLod(u_PrefilteredMap, R, 
-            u_Roughness * u_MaxReflectionLOD).rgb;
-        
+
+        // Sample pre-filtered environment
+        float mipLevel = u_Roughness * u_MaxReflectionLOD;
+        vec3 prefilteredColor = SampleEnvironmentWithFallback(u_PrefilteredMap, R, mipLevel);
+
         // Look up BRDF integration
         vec2 envBRDF = texture(u_BRDF_LUT, vec2(max(dot(N, V), 0.0), u_Roughness)).rg;
-        
+
         // Reconstruct specular: F0 * scale + bias
         vec3 specularIBL = prefilteredColor * (F0 * envBRDF.x + envBRDF.y);
-        
+
+        // ----- Minimum Metallic Reflection Floor -----
+        // For highly metallic surfaces, ensure a minimum reflection based on the fallback color
+        // This prevents pure black even when environment and BRDF combine to near-zero
+        float metallicFactor = u_Metallic * (1.0 - u_Roughness);  // Strongest for shiny metals
+        vec3 minReflection = u_LowerHemisphereColor * F0 * metallicFactor * u_LowerHemisphereIntensity;
+        specularIBL = max(specularIBL, minReflection);
+
         // ----- Combine -----
         ambient = (kD_IBL * diffuseIBL + specularIBL) * u_AO * u_IBLIntensity;
     }
