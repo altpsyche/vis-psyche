@@ -24,6 +24,7 @@ set(VIZENGINE_SOURCES
     src/VizEngine/OpenGL/Renderer.cpp
     src/VizEngine/OpenGL/Shader.cpp
     src/VizEngine/OpenGL/Texture.cpp
+    src/VizEngine/OpenGL/Texture3D.cpp
     src/VizEngine/OpenGL/Framebuffer.cpp
     src/VizEngine/OpenGL/VertexArray.cpp
     src/VizEngine/OpenGL/VertexBuffer.cpp

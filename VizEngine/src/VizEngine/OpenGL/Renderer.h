@@ -5,6 +5,8 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "VizEngine/Core.h"
+#include <vector>
+#include <array>
 
 namespace VizEngine
 {
@@ -16,6 +18,11 @@ namespace VizEngine
 		void SetViewport(int x, int y, int width, int height);
 		void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader) const;
 
+		// Viewport stack for safe state management
+		void PushViewport();
+		void PopViewport();
+		void GetViewport(int& x, int& y, int& width, int& height) const;
+
 		// Shadow mapping helpers
 		void EnablePolygonOffset(float factor, float units);
 		void DisablePolygonOffset();
@@ -23,5 +30,8 @@ namespace VizEngine
 		// Depth test control (for post-processing)
 		void EnableDepthTest();
 		void DisableDepthTest();
+
+	private:
+		std::vector<std::array<int, 4>> m_ViewportStack;
 	};
 }

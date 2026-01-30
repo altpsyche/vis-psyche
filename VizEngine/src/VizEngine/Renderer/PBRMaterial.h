@@ -76,15 +76,17 @@ namespace VizEngine
         // =====================================================================
 
         void SetModelMatrix(const glm::mat4& model);
+        void SetNormalMatrix(const glm::mat3& normalMatrix);
         void SetViewMatrix(const glm::mat4& view);
         void SetProjectionMatrix(const glm::mat4& projection);
         void SetViewPosition(const glm::vec3& viewPos);
 
         /**
-         * Set all matrices at once.
+         * Set all matrices at once (including normal matrix).
          */
-        void SetTransforms(const glm::mat4& model, const glm::mat4& view, 
-                          const glm::mat4& projection, const glm::vec3& viewPos);
+        void SetTransforms(const glm::mat4& model, const glm::mat4& view,
+                          const glm::mat4& projection, const glm::vec3& viewPos,
+                          const glm::mat3& normalMatrix);
 
     protected:
         void UploadParameters() override;

@@ -13,6 +13,7 @@ out vec2 v_TexCoords;
 out vec4 v_FragPosLightSpace;  // Position in light space for shadow mapping
 
 uniform mat4 u_Model;
+uniform mat3 u_NormalMatrix;      // Pre-computed: transpose(inverse(mat3(model)))
 uniform mat4 u_View;
 uniform mat4 u_Projection;
 uniform mat4 u_LightSpaceMatrix;  // Light's projection * view
@@ -24,7 +25,7 @@ void main()
     v_WorldPos = worldPos.xyz;
     
     // Transform normal to world space (use normal matrix for non-uniform scaling)
-    v_Normal = mat3(transpose(inverse(u_Model))) * aNormal;
+    v_Normal = u_NormalMatrix * aNormal;
     
     // Pass through texture coordinates
     v_TexCoords = aTexCoords;

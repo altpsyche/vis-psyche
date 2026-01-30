@@ -2,6 +2,9 @@
 #include <VizEngine/Events/ApplicationEvent.h>
 #include <VizEngine/Events/KeyEvent.h>
 #include <VizEngine/Renderer/Bloom.h>
+#include <VizEngine/Renderer/PBRMaterial.h>
+#include <VizEngine/OpenGL/Commons.h>
+#include <VizEngine/OpenGL/Texture3D.h>
 #include <chrono>
 
 class Sandbox : public VizEngine::Application
@@ -248,12 +251,25 @@ public:
 		// =========================================================================
 		// PBR Rendering Setup (Chapter 33)
 		// =========================================================================
-		m_DefaultLitShader = std::make_unique<VizEngine::Shader>("resources/shaders/defaultlit.shader");
+		m_DefaultLitShader = std::make_shared<VizEngine::Shader>("resources/shaders/defaultlit.shader");
 		if (!m_DefaultLitShader->IsValid())
 		{
 			VP_ERROR("Failed to load m_DefaultLitShader - cannot initialize PBR rendering!");
 			return;
 		}
+
+		// Initialize PBR Material (Chapter 38 - Material System)
+		m_PBRMaterial = std::make_shared<VizEngine::PBRMaterial>(m_DefaultLitShader, "Scene PBR Material");
+
+		// Setup IBL maps on material if available
+		if (m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut)
+		{
+			m_PBRMaterial->SetIrradianceMap(m_IrradianceMap);
+			m_PBRMaterial->SetPrefilteredMap(m_PrefilteredMap);
+			m_PBRMaterial->SetBRDFLUT(m_BRDFLut);
+			m_PBRMaterial->SetUseIBL(true);
+		}
+
 		m_SphereMesh = std::shared_ptr<VizEngine::Mesh>(VizEngine::Mesh::CreateSphere(1.0f, 32).release());
 		VP_INFO("PBR rendering initialized");
 
@@ -324,9 +340,9 @@ public:
 		VP_INFO("Bloom initialized: {}x{}", bloomWidth, bloomHeight);
 
 		// Create Neutral Color Grading LUT (16x16x16)
-		m_ColorGradingLUT = VizEngine::Texture::CreateNeutralLUT3D(16);
+		m_ColorGradingLUT = VizEngine::Texture3D::CreateNeutralLUT(16);
 
-		if (m_ColorGradingLUT == 0)
+		if (!m_ColorGradingLUT)
 		{
 			VP_ERROR("Failed to create color grading LUT!");
 		}
@@ -405,6 +421,8 @@ public:
 		// =========================================================================
 		if (m_ShadowMapFramebuffer && m_ShadowDepthShader)
 		{
+			renderer.PushViewport();  // Save current viewport
+
 			m_ShadowMapFramebuffer->Bind();
 			renderer.SetViewport(0, 0, m_ShadowMapFramebuffer->GetWidth(), m_ShadowMapFramebuffer->GetHeight());
 			renderer.ClearDepth();  // Clear depth buffer (no color attachment)
@@ -433,8 +451,9 @@ public:
 			renderer.DisablePolygonOffset();
 
 			m_ShadowMapFramebuffer->Unbind();
+
+			renderer.PopViewport();  // Restore viewport
 		}
-		renderer.SetViewport(0, 0, m_WindowWidth, m_WindowHeight);
 
 		// =========================================================================
 		// Pass 2: Render scene with PBR to HDR Framebuffer (Chapter 35)
@@ -521,9 +540,9 @@ public:
 			// Bind tone mapping shader
 			m_ToneMappingShader->Bind();
 
-			// Bind HDR texture
-			m_HDRColorTexture->Bind(0);
-			m_ToneMappingShader->SetInt("u_HDRBuffer", 0);
+			// Bind HDR texture using standard slot
+			m_HDRColorTexture->Bind(VizEngine::TextureSlots::HDRBuffer);
+			m_ToneMappingShader->SetInt("u_HDRBuffer", VizEngine::TextureSlots::HDRBuffer);
 
 			// Set tone mapping parameters
 			m_ToneMappingShader->SetInt("u_ToneMappingMode", m_ToneMappingMode);
@@ -536,8 +555,8 @@ public:
 			m_ToneMappingShader->SetFloat("u_BloomIntensity", m_BloomIntensity);
 			if (bloomTexture)
 			{
-				bloomTexture->Bind(1);
-				m_ToneMappingShader->SetInt("u_BloomTexture", 1);
+				bloomTexture->Bind(VizEngine::TextureSlots::BloomTexture);
+				m_ToneMappingShader->SetInt("u_BloomTexture", VizEngine::TextureSlots::BloomTexture);
 			}
 
 			// Color grading parameters
@@ -547,10 +566,10 @@ public:
 			m_ToneMappingShader->SetFloat("u_Contrast", m_Contrast);
 			m_ToneMappingShader->SetFloat("u_Brightness", m_Brightness);
 
-			if (m_EnableColorGrading && m_ColorGradingLUT != 0)
+			if (m_EnableColorGrading && m_ColorGradingLUT)
 			{
-				VizEngine::Texture::BindTexture3D(m_ColorGradingLUT, 2);
-				m_ToneMappingShader->SetInt("u_ColorGradingLUT", 2);
+				m_ColorGradingLUT->Bind(VizEngine::TextureSlots::ColorGradingLUT);
+				m_ToneMappingShader->SetInt("u_ColorGradingLUT", VizEngine::TextureSlots::ColorGradingLUT);
 			}
 
 			// Render fullscreen quad
@@ -1103,12 +1122,8 @@ public:
 
 	void OnDestroy() override
 	{
-		// Clean up raw OpenGL resources not wrapped in RAII
-		if (m_ColorGradingLUT != 0)
-		{
-			VizEngine::Texture::DeleteTexture3D(m_ColorGradingLUT);
-			m_ColorGradingLUT = 0;
-		}
+		// All resources now use RAII and clean themselves up automatically
+		// (Texture3D, PBRMaterial, etc.)
 	}
 
 private:
@@ -1157,33 +1172,39 @@ private:
 	{
 		auto& renderer = VizEngine::Engine::Get().GetRenderer();
 
+		if (!m_PBRMaterial) return;
+
 		for (auto& obj : m_Scene)
 		{
 			if (!obj.Active || !obj.MeshPtr) continue;
 
 			glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
-			m_DefaultLitShader->SetMatrix4fv("u_Model", model);
+			glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
 
-			// Use object's material properties for PBR
-			m_DefaultLitShader->SetVec3("u_Albedo", glm::vec3(obj.Color));
-			m_DefaultLitShader->SetFloat("u_Metallic", obj.Metallic);
-			m_DefaultLitShader->SetFloat("u_Roughness", obj.Roughness);
-			m_DefaultLitShader->SetFloat("u_AO", 1.0f);
+			// Use Material System (Chapter 38)
+			m_PBRMaterial->SetModelMatrix(model);
+			m_PBRMaterial->SetNormalMatrix(normalMatrix);
+			m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
+			m_PBRMaterial->SetMetallic(obj.Metallic);
+			m_PBRMaterial->SetRoughness(obj.Roughness);
+			m_PBRMaterial->SetAO(1.0f);
 
-			// Bind texture if available
+			// Handle texture
 			if (obj.TexturePtr)
 			{
-				obj.TexturePtr->Bind(0);
-				m_DefaultLitShader->SetInt("u_AlbedoTexture", 0);
-				m_DefaultLitShader->SetBool("u_UseAlbedoTexture", true);
+				m_PBRMaterial->SetAlbedoTexture(obj.TexturePtr);
 			}
 			else
 			{
-				m_DefaultLitShader->SetBool("u_UseAlbedoTexture", false);
+				m_PBRMaterial->SetAlbedoTexture(nullptr);
 			}
 
+			// Bind material (uploads all uniforms)
+			m_PBRMaterial->Bind();
+
 			obj.MeshPtr->Bind();
-			renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *m_DefaultLitShader);
+			renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(),
+			              *m_PBRMaterial->GetShader());
 		}
 	}
 
@@ -1192,53 +1213,47 @@ private:
 	// =========================================================================
 	void SetupDefaultLitShader()
 	{
-		if (!m_DefaultLitShader) return;
-		
-		m_DefaultLitShader->Bind();
-		
-		// Set camera matrices
-		m_DefaultLitShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
-		m_DefaultLitShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
-		m_DefaultLitShader->SetVec3("u_ViewPos", m_Camera.GetPosition());
-		
-		// Set PBR point lights
-		m_DefaultLitShader->SetInt("u_LightCount", 4);
+		if (!m_PBRMaterial) return;
+
+		// Set camera matrices on material
+		m_PBRMaterial->SetViewMatrix(m_Camera.GetViewMatrix());
+		m_PBRMaterial->SetProjectionMatrix(m_Camera.GetProjectionMatrix());
+		m_PBRMaterial->SetViewPosition(m_Camera.GetPosition());
+
+		// Configure lights via shader (material doesn't have light setters yet)
+		auto shader = m_PBRMaterial->GetShader();
+		shader->Bind();
+
+		shader->SetInt("u_LightCount", 4);
 		for (int i = 0; i < 4; ++i)
 		{
-			m_DefaultLitShader->SetVec3("u_LightPositions[" + std::to_string(i) + "]", m_PBRLightPositions[i]);
-			m_DefaultLitShader->SetVec3("u_LightColors[" + std::to_string(i) + "]", m_PBRLightColors[i]);
+			shader->SetVec3("u_LightPositions[" + std::to_string(i) + "]", m_PBRLightPositions[i]);
+			shader->SetVec3("u_LightColors[" + std::to_string(i) + "]", m_PBRLightColors[i]);
 		}
-		
-		// Set directional light
-		m_DefaultLitShader->SetBool("u_UseDirLight", true);
-		m_DefaultLitShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
-		m_DefaultLitShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
-		
-		// Set shadow mapping uniforms
-		m_DefaultLitShader->SetMatrix4fv("u_LightSpaceMatrix", m_LightSpaceMatrix);
-		if (m_ShadowMapDepth)
-		{
-			m_ShadowMapDepth->Bind(1);
-			m_DefaultLitShader->SetInt("u_ShadowMap", 1);
-		}
-		
-		// Bind IBL textures
+
+		// Directional light
+		shader->SetBool("u_UseDirLight", true);
+		shader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
+		shader->SetVec3("u_DirLightColor", m_Light.Diffuse);
+
+		// Shadow mapping (use standard texture slots)
+		m_PBRMaterial->SetLightSpaceMatrix(m_LightSpaceMatrix);
+		m_PBRMaterial->SetShadowMap(m_ShadowMapDepth);
+		m_PBRMaterial->SetUseShadows(true);
+
+		// IBL
+		m_PBRMaterial->SetUseIBL(m_UseIBL);
 		if (m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut)
 		{
-			m_IrradianceMap->Bind(5);
-			m_DefaultLitShader->SetInt("u_IrradianceMap", 5);
-			m_PrefilteredMap->Bind(6);
-			m_DefaultLitShader->SetInt("u_PrefilteredMap", 6);
-			m_BRDFLut->Bind(7);
-			m_DefaultLitShader->SetInt("u_BRDF_LUT", 7);
-			m_DefaultLitShader->SetFloat("u_MaxReflectionLOD", 4.0f);
-			m_DefaultLitShader->SetBool("u_UseIBL", true);
-			m_DefaultLitShader->SetFloat("u_IBLIntensity", m_IBLIntensity);
+			m_PBRMaterial->SetIrradianceMap(m_IrradianceMap);
+			m_PBRMaterial->SetPrefilteredMap(m_PrefilteredMap);
+			m_PBRMaterial->SetBRDFLUT(m_BRDFLut);
+			shader->SetFloat("u_MaxReflectionLOD", 4.0f);
+			shader->SetFloat("u_IBLIntensity", m_IBLIntensity);
 		}
 		else
 		{
-			m_DefaultLitShader->SetBool("u_UseIBL", false);
-			m_DefaultLitShader->SetFloat("u_IBLIntensity", 0.0f);
+			shader->SetFloat("u_IBLIntensity", 0.0f);
 		}
 	}
 
@@ -1305,7 +1320,8 @@ private:
 	float m_IBLIntensity = 0.3f;  // Lower default to balance direct vs ambient lighting
 
 	// PBR Rendering (Chapter 33)
-	std::unique_ptr<VizEngine::Shader> m_DefaultLitShader;
+	std::shared_ptr<VizEngine::Shader> m_DefaultLitShader;
+	std::shared_ptr<VizEngine::PBRMaterial> m_PBRMaterial;
 	std::shared_ptr<VizEngine::Mesh> m_SphereMesh;
 	glm::vec3 m_PBRLightPositions[4] = {
 		glm::vec3(-10.0f,  10.0f, 10.0f),
@@ -1346,7 +1362,7 @@ private:
 	int m_BloomBlurPasses = 5;
 
 	// Color Grading (Chapter 36)
-	unsigned int m_ColorGradingLUT = 0;  // Raw OpenGL texture ID
+	std::unique_ptr<VizEngine::Texture3D> m_ColorGradingLUT;
 	bool m_EnableColorGrading = false;
 	float m_LUTContribution = 1.0f;
 	float m_Saturation = 1.0f;

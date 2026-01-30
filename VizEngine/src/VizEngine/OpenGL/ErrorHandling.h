@@ -1,9 +1,7 @@
 #pragma once
 
-#include "Commons.h"
+#include <glad/glad.h>
 #include "VizEngine/Core.h"
-
-
 
 namespace VizEngine
 {

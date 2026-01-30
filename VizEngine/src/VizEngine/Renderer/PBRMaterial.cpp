@@ -3,6 +3,7 @@
 #include "PBRMaterial.h"
 #include "VizEngine/OpenGL/Shader.h"
 #include "VizEngine/OpenGL/Texture.h"
+#include "VizEngine/OpenGL/Commons.h"
 
 namespace VizEngine
 {
@@ -76,7 +77,7 @@ namespace VizEngine
     {
         if (texture)
         {
-            SetTexture("u_AlbedoTexture", texture, 0);
+            SetTexture("u_AlbedoTexture", texture, TextureSlots::Albedo);
             m_HasAlbedoTexture = true;
             SetBool("u_UseAlbedoTexture", true);
         }
@@ -91,7 +92,7 @@ namespace VizEngine
     {
         if (texture)
         {
-            SetTexture("u_NormalTexture", texture, 1);
+            SetTexture("u_NormalTexture", texture, TextureSlots::Normal);
             m_HasNormalTexture = true;
             SetBool("u_UseNormalMap", true);
         }
@@ -106,7 +107,7 @@ namespace VizEngine
     {
         if (texture)
         {
-            SetTexture("u_MetallicRoughnessTexture", texture, 2);
+            SetTexture("u_MetallicRoughnessTexture", texture, TextureSlots::MetallicRoughness);
             SetBool("u_UseMetallicRoughnessTexture", true);
         }
         else
@@ -119,7 +120,7 @@ namespace VizEngine
     {
         if (texture)
         {
-            SetTexture("u_AOTexture", texture, 3);
+            SetTexture("u_AOTexture", texture, TextureSlots::AO);
             SetBool("u_UseAOTexture", true);
         }
         else
@@ -132,7 +133,7 @@ namespace VizEngine
     {
         if (texture)
         {
-            SetTexture("u_EmissiveTexture", texture, 4);
+            SetTexture("u_EmissiveTexture", texture, TextureSlots::Emissive);
             SetBool("u_UseEmissiveTexture", true);
         }
         else
@@ -149,7 +150,7 @@ namespace VizEngine
     {
         if (irradianceMap)
         {
-            SetTexture("u_IrradianceMap", irradianceMap, 5, true);  // true = cubemap
+            SetTexture("u_IrradianceMap", irradianceMap, TextureSlots::Irradiance, true);  // true = cubemap
         }
     }
 
@@ -157,7 +158,7 @@ namespace VizEngine
     {
         if (prefilteredMap)
         {
-            SetTexture("u_PrefilteredMap", prefilteredMap, 6, true);  // true = cubemap
+            SetTexture("u_PrefilteredMap", prefilteredMap, TextureSlots::Prefiltered, true);  // true = cubemap
         }
     }
 
@@ -165,7 +166,7 @@ namespace VizEngine
     {
         if (brdfLut)
         {
-            SetTexture("u_BRDFLut", brdfLut, 7);
+            SetTexture("u_BRDF_LUT", brdfLut, TextureSlots::BRDF_LUT);
         }
     }
 
@@ -183,7 +184,7 @@ namespace VizEngine
     {
         if (shadowMap)
         {
-            SetTexture("u_ShadowMap", shadowMap, 8);
+            SetTexture("u_ShadowMap", shadowMap, TextureSlots::ShadowMap);
         }
     }
 
@@ -207,6 +208,11 @@ namespace VizEngine
         SetMat4("u_Model", model);
     }
 
+    void PBRMaterial::SetNormalMatrix(const glm::mat3& normalMatrix)
+    {
+        SetMat3("u_NormalMatrix", normalMatrix);
+    }
+
     void PBRMaterial::SetViewMatrix(const glm::mat4& view)
     {
         SetMat4("u_View", view);
@@ -223,9 +229,11 @@ namespace VizEngine
     }
 
     void PBRMaterial::SetTransforms(const glm::mat4& model, const glm::mat4& view,
-                                    const glm::mat4& projection, const glm::vec3& viewPos)
+                                    const glm::mat4& projection, const glm::vec3& viewPos,
+                                    const glm::mat3& normalMatrix)
     {
         SetModelMatrix(model);
+        SetNormalMatrix(normalMatrix);
         SetViewMatrix(view);
         SetProjectionMatrix(projection);
         SetViewPosition(viewPos);

@@ -88,6 +88,11 @@ namespace VizEngine
 			return nullptr;
 		}
 
+		// Disable depth test for fullscreen passes (color-only framebuffers)
+		GLboolean depthTestEnabled;
+		glGetBooleanv(GL_DEPTH_TEST, &depthTestEnabled);
+		glDisable(GL_DEPTH_TEST);
+
 		// ====================================================================
 		// Pass 1: Extract Bright Regions
 		// ====================================================================
@@ -145,6 +150,13 @@ namespace VizEngine
 			// Update source for next iteration
 			sourceTexture = finalTex;
 		}
+
+		// Restore depth test state
+		if (depthTestEnabled)
+		{
+			glEnable(GL_DEPTH_TEST);
+		}
+
 		// Return final blurred result
 		return sourceTexture;
 	}
