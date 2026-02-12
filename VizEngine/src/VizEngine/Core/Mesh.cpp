@@ -3,6 +3,83 @@
 
 namespace VizEngine
 {
+	// =========================================================================
+	// Tangent Computation (Chapter 34: Normal Mapping)
+	// =========================================================================
+	// Computes tangent and bitangent vectors for each vertex from triangle
+	// geometry and UV coordinates. Uses the standard edge/deltaUV method
+	// with per-vertex accumulation and Gram-Schmidt orthogonalization.
+	static void ComputeTangents(std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
+	{
+		// Zero out tangents/bitangents for accumulation
+		for (auto& v : vertices)
+		{
+			v.Tangent = glm::vec3(0.0f);
+			v.Bitangent = glm::vec3(0.0f);
+		}
+
+		// Process each triangle
+		for (size_t i = 0; i + 2 < indices.size(); i += 3)
+		{
+			Vertex& v0 = vertices[indices[i + 0]];
+			Vertex& v1 = vertices[indices[i + 1]];
+			Vertex& v2 = vertices[indices[i + 2]];
+
+			glm::vec3 edge1 = glm::vec3(v1.Position) - glm::vec3(v0.Position);
+			glm::vec3 edge2 = glm::vec3(v2.Position) - glm::vec3(v0.Position);
+
+			glm::vec2 deltaUV1 = v1.TexCoords - v0.TexCoords;
+			glm::vec2 deltaUV2 = v2.TexCoords - v0.TexCoords;
+
+			float det = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			if (std::abs(det) < 1e-8f)
+				continue;  // Degenerate UV triangle, skip
+
+			float invDet = 1.0f / det;
+
+			glm::vec3 tangent;
+			tangent.x = invDet * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			tangent.y = invDet * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			tangent.z = invDet * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			glm::vec3 bitangent;
+			bitangent.x = invDet * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+			bitangent.y = invDet * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+			bitangent.z = invDet * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+
+			// Accumulate per-vertex (shared vertices get averaged)
+			v0.Tangent += tangent;
+			v1.Tangent += tangent;
+			v2.Tangent += tangent;
+
+			v0.Bitangent += bitangent;
+			v1.Bitangent += bitangent;
+			v2.Bitangent += bitangent;
+		}
+
+		// Normalize and orthogonalize (Gram-Schmidt)
+		for (auto& v : vertices)
+		{
+			const glm::vec3& n = v.Normal;
+			glm::vec3& t = v.Tangent;
+
+			if (glm::length(t) < 1e-6f)
+			{
+				// Fallback: generate tangent from normal
+				if (std::abs(n.x) < 0.9f)
+					t = glm::normalize(glm::cross(n, glm::vec3(1.0f, 0.0f, 0.0f)));
+				else
+					t = glm::normalize(glm::cross(n, glm::vec3(0.0f, 1.0f, 0.0f)));
+			}
+
+			// Gram-Schmidt: make tangent perpendicular to normal
+			t = glm::normalize(t - n * glm::dot(n, t));
+
+			// Compute bitangent from cross product (ensures orthogonal frame)
+			v.Bitangent = glm::cross(n, t);
+		}
+	}
+
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
 	{
 		SetupMesh(
@@ -28,6 +105,8 @@ namespace VizEngine
 		layout.Push<float>(3); // Normal (vec3)
 		layout.Push<float>(4); // Color (vec4)
 		layout.Push<float>(2); // TexCoords (vec2)
+		layout.Push<float>(3); // Tangent (vec3)   - Chapter 34: Normal Mapping
+		layout.Push<float>(3); // Bitangent (vec3) - Chapter 34: Normal Mapping
 
 		m_VertexArray->LinkVertexBuffer(*m_VertexBuffer, layout);
 		m_IndexBuffer = std::make_unique<IndexBuffer>(indices, static_cast<unsigned int>(indexCount));
@@ -104,6 +183,7 @@ namespace VizEngine
 			13, 14, 15
 		};
 
+		ComputeTangents(vertices, indices);
 		return std::make_unique<Mesh>(vertices, indices);
 	}
 
@@ -173,6 +253,7 @@ namespace VizEngine
 			20, 21, 22, 22, 23, 20
 		};
 
+		ComputeTangents(vertices, indices);
 		return std::make_unique<Mesh>(vertices, indices);
 	}
 
@@ -194,6 +275,7 @@ namespace VizEngine
 			2, 3, 0
 		};
 
+		ComputeTangents(vertices, indices);
 		return std::make_unique<Mesh>(vertices, indices);
 	}
 
@@ -251,6 +333,7 @@ namespace VizEngine
 			}
 		}
 
+		ComputeTangents(vertices, indices);
 		return std::make_unique<Mesh>(vertices, indices);
 	}
 }

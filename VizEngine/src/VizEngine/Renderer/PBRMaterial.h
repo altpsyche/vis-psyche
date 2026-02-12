@@ -44,6 +44,9 @@ namespace VizEngine
         void SetAO(float ao);
         float GetAO() const;
 
+        void SetAlpha(float alpha);
+        float GetAlpha() const;
+
         // =====================================================================
         // Texture Maps
         // =====================================================================
@@ -103,6 +106,7 @@ namespace VizEngine
         float m_Metallic = 0.0f;
         float m_Roughness = 0.5f;
         float m_AO = 1.0f;
+        float m_Alpha = 1.0f;
 
         bool m_UseIBL = false;
         bool m_UseShadows = false;

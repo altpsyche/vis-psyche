@@ -6,11 +6,14 @@ layout(location = 0) in vec4 aPos;       // Position (vec4)
 layout(location = 1) in vec3 aNormal;    // Normal (vec3)
 layout(location = 2) in vec4 aColor;     // Color (vec4) - unused in PBR but must be declared
 layout(location = 3) in vec2 aTexCoords; // TexCoords (vec2)
+layout(location = 4) in vec3 aTangent;   // Tangent (vec3) - Chapter 34: Normal Mapping
+layout(location = 5) in vec3 aBitangent; // Bitangent (vec3) - Chapter 34: Normal Mapping
 
 out vec3 v_WorldPos;
 out vec3 v_Normal;
 out vec2 v_TexCoords;
 out vec4 v_FragPosLightSpace;  // Position in light space for shadow mapping
+out mat3 v_TBN;                // Tangent-Bitangent-Normal matrix (Chapter 34)
 
 uniform mat4 u_Model;
 uniform mat3 u_NormalMatrix;      // Pre-computed: transpose(inverse(mat3(model)))
@@ -23,16 +26,22 @@ void main()
     // Transform position to world space
     vec4 worldPos = u_Model * aPos;
     v_WorldPos = worldPos.xyz;
-    
+
     // Transform normal to world space (use normal matrix for non-uniform scaling)
     v_Normal = u_NormalMatrix * aNormal;
-    
+
     // Pass through texture coordinates
     v_TexCoords = aTexCoords;
-    
+
     // Transform position to light space for shadow mapping
     v_FragPosLightSpace = u_LightSpaceMatrix * worldPos;
-    
+
+    // Build TBN matrix for normal mapping (Chapter 34)
+    vec3 T = normalize(u_NormalMatrix * aTangent);
+    vec3 B = normalize(u_NormalMatrix * aBitangent);
+    vec3 N = normalize(u_NormalMatrix * aNormal);
+    v_TBN = mat3(T, B, N);
+
     gl_Position = u_Projection * u_View * vec4(v_WorldPos, 1.0);
 }
 
@@ -46,6 +55,7 @@ in vec3 v_WorldPos;
 in vec3 v_Normal;
 in vec2 v_TexCoords;
 in vec4 v_FragPosLightSpace;
+in mat3 v_TBN;  // Tangent-Bitangent-Normal matrix (Chapter 34)
 
 // ============================================================================
 // Material Parameters
@@ -54,10 +64,15 @@ uniform vec3 u_Albedo;           // Base color (or tint if using texture)
 uniform float u_Metallic;        // 0 = dielectric, 1 = metal
 uniform float u_Roughness;       // 0 = smooth, 1 = rough
 uniform float u_AO;              // Ambient occlusion
+uniform float u_Alpha;           // Opacity (Chapter 33: Blending)
 
 // Albedo/Base color texture
 uniform sampler2D u_AlbedoTexture;
 uniform bool u_UseAlbedoTexture;
+
+// Normal map (Chapter 34: Normal Mapping)
+uniform sampler2D u_NormalTexture;
+uniform bool u_UseNormalMap;
 
 // ============================================================================
 // Camera
@@ -284,8 +299,17 @@ void main()
 {
     // Normalize interpolated vectors
     vec3 N = normalize(v_Normal);
+
+    // Chapter 34: Normal Mapping — perturb normal using tangent-space map
+    if (u_UseNormalMap)
+    {
+        vec3 normalMap = texture(u_NormalTexture, v_TexCoords).rgb;
+        normalMap = normalMap * 2.0 - 1.0;  // [0,1] -> [-1,1] (tangent space)
+        N = normalize(v_TBN * normalMap);    // Transform to world space via TBN
+    }
+
     vec3 V = normalize(u_ViewPos - v_WorldPos);
-    
+
     // Get albedo from texture or uniform
     vec3 albedo = u_Albedo;
     if (u_UseAlbedoTexture)
@@ -448,5 +472,6 @@ void main()
 
     // Output raw linear HDR values (no tone mapping, no gamma correction)
     // These will be processed by the tone mapping shader
-    FragColor = vec4(color, 1.0);
+    // Alpha from u_Alpha uniform (Chapter 33: Blending & Transparency)
+    FragColor = vec4(color, u_Alpha);
 }

@@ -17,6 +17,7 @@ namespace VizEngine
         SetVec3("u_Albedo", m_Albedo);
         SetBool("u_UseAlbedoTexture", false);
         SetBool("u_UseNormalMap", false);
+        SetFloat("u_Alpha", m_Alpha);
         SetBool("u_UseIBL", false);
         SetBool("u_UseShadows", false);
 
@@ -71,6 +72,17 @@ namespace VizEngine
     float PBRMaterial::GetAO() const
     {
         return m_AO;
+    }
+
+    void PBRMaterial::SetAlpha(float alpha)
+    {
+        m_Alpha = glm::clamp(alpha, 0.0f, 1.0f);
+        SetFloat("u_Alpha", m_Alpha);
+    }
+
+    float PBRMaterial::GetAlpha() const
+    {
+        return m_Alpha;
     }
 
     // =========================================================================

@@ -6,7 +6,7 @@ namespace VizEngine
 	void Renderer::Clear(float clearColor[4])
 	{
 		glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
 	void Renderer::ClearDepth()
@@ -77,5 +77,102 @@ namespace VizEngine
 	void Renderer::DisableDepthTest()
 	{
 		glDisable(GL_DEPTH_TEST);
+	}
+
+	// =========================================================================
+	// Chapter 32: Depth & Stencil Testing
+	// =========================================================================
+
+	void Renderer::SetDepthFunc(unsigned int func)
+	{
+		glDepthFunc(func);
+	}
+
+	void Renderer::SetDepthMask(bool write)
+	{
+		glDepthMask(write ? GL_TRUE : GL_FALSE);
+	}
+
+	void Renderer::EnableStencilTest()
+	{
+		glEnable(GL_STENCIL_TEST);
+	}
+
+	void Renderer::DisableStencilTest()
+	{
+		glDisable(GL_STENCIL_TEST);
+	}
+
+	void Renderer::SetStencilFunc(unsigned int func, int ref, unsigned int mask)
+	{
+		glStencilFunc(func, ref, mask);
+	}
+
+	void Renderer::SetStencilOp(unsigned int sfail, unsigned int dpfail, unsigned int dppass)
+	{
+		glStencilOp(sfail, dpfail, dppass);
+	}
+
+	void Renderer::SetStencilMask(unsigned int mask)
+	{
+		glStencilMask(mask);
+	}
+
+	void Renderer::ClearStencil()
+	{
+		glClear(GL_STENCIL_BUFFER_BIT);
+	}
+
+	void Renderer::EnableFaceCulling()
+	{
+		glEnable(GL_CULL_FACE);
+	}
+
+	void Renderer::DisableFaceCulling()
+	{
+		glDisable(GL_CULL_FACE);
+	}
+
+	void Renderer::SetCullFace(unsigned int face)
+	{
+		glCullFace(face);
+	}
+
+	// =========================================================================
+	// Chapter 33: Blending & Transparency
+	// =========================================================================
+
+	void Renderer::EnableBlending()
+	{
+		glEnable(GL_BLEND);
+	}
+
+	void Renderer::DisableBlending()
+	{
+		glDisable(GL_BLEND);
+	}
+
+	void Renderer::SetBlendFunc(unsigned int src, unsigned int dst)
+	{
+		glBlendFunc(src, dst);
+	}
+
+	void Renderer::SetBlendEquation(unsigned int mode)
+	{
+		glBlendEquation(mode);
+	}
+
+	// =========================================================================
+	// Chapter 35: Instancing
+	// =========================================================================
+
+	void Renderer::DrawInstanced(const VertexArray& va, const IndexBuffer& ib,
+	                             const Shader& shader, int instanceCount) const
+	{
+		shader.Bind();
+		va.Bind();
+		ib.Bind();
+
+		glDrawElementsInstanced(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr, instanceCount);
 	}
 }

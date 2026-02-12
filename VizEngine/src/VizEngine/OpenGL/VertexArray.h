@@ -24,6 +24,11 @@ namespace VizEngine
 
 		// Links a VertexBuffer to the VertexArray using a certain layout
 		void LinkVertexBuffer(const VertexBuffer& vertexBuffer, const VertexBufferLayout& layout) const;
+
+		// Chapter 35: Links a per-instance VBO with glVertexAttribDivisor
+		void LinkInstanceBuffer(const VertexBuffer& instanceBuffer, const VertexBufferLayout& layout,
+		                        unsigned int startAttribIndex) const;
+
 		// Binds the VertexArray
 		void Bind() const;
 		// Unbinds the VertexArray

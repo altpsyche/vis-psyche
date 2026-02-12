@@ -9,6 +9,7 @@
 #include "tiny_gltf.h"
 
 #include <filesystem>
+#include <cmath>
 
 namespace VizEngine
 {
@@ -417,6 +418,26 @@ namespace VizEngine
 					}
 				}
 
+				// Load tangent data (Chapter 34: Normal Mapping)
+				// glTF stores TANGENT as vec4 (xyz = tangent direction, w = handedness sign)
+				const float* tangents = nullptr;
+				if (primitive.attributes.find("TANGENT") != primitive.attributes.end())
+				{
+					int tanAccessorIndex = primitive.attributes.at("TANGENT");
+					if (tanAccessorIndex >= 0 && tanAccessorIndex < static_cast<int>(gltfModel.accessors.size()))
+					{
+						const auto& tanAccessor = gltfModel.accessors[tanAccessorIndex];
+						if (ValidateAttributeBuffer(gltfModel, tanAccessor, vertexCount, 4, "Tangent"))
+						{
+							tangents = GetBufferData<float>(gltfModel, tanAccessor);
+						}
+					}
+					else
+					{
+						VP_CORE_WARN("TANGENT accessor index {} out of range", tanAccessorIndex);
+					}
+				}
+
 				const float* colors = nullptr;  // nullptr check deferred to vertex loop
 				int colorComponents = 0;
 				if (primitive.attributes.find("COLOR_0") != primitive.attributes.end())
@@ -496,6 +517,18 @@ namespace VizEngine
 						v.Color = glm::vec4(1.0f);
 					}
 
+					// Chapter 34: Load tangent from glTF (vec4: xyz=tangent, w=handedness)
+					if (tangents)
+					{
+						v.Tangent = glm::vec3(
+							tangents[i * 4 + 0],
+							tangents[i * 4 + 1],
+							tangents[i * 4 + 2]
+						);
+						float handedness = tangents[i * 4 + 3];  // +1 or -1
+						v.Bitangent = glm::cross(v.Normal, v.Tangent) * handedness;
+					}
+
 					vertices.push_back(v);
 				}
 
@@ -522,6 +555,54 @@ namespace VizEngine
 					for (size_t i = 0; i < vertexCount; i++)
 					{
 						indices.push_back(static_cast<unsigned int>(i));
+					}
+				}
+
+				// Chapter 34: Compute tangents if not provided by glTF
+				if (!tangents && !vertices.empty() && !indices.empty())
+				{
+					// Use the same tangent computation algorithm as Mesh factory methods
+					for (auto& v : vertices)
+					{
+						v.Tangent = glm::vec3(0.0f);
+						v.Bitangent = glm::vec3(0.0f);
+					}
+
+					for (size_t ti = 0; ti + 2 < indices.size(); ti += 3)
+					{
+						Vertex& v0 = vertices[indices[ti + 0]];
+						Vertex& v1 = vertices[indices[ti + 1]];
+						Vertex& v2 = vertices[indices[ti + 2]];
+
+						glm::vec3 edge1 = glm::vec3(v1.Position) - glm::vec3(v0.Position);
+						glm::vec3 edge2 = glm::vec3(v2.Position) - glm::vec3(v0.Position);
+						glm::vec2 dUV1 = v1.TexCoords - v0.TexCoords;
+						glm::vec2 dUV2 = v2.TexCoords - v0.TexCoords;
+
+						float det = dUV1.x * dUV2.y - dUV2.x * dUV1.y;
+						if (std::abs(det) < 1e-8f) continue;
+						float invDet = 1.0f / det;
+
+						glm::vec3 tan;
+						tan.x = invDet * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+						tan.y = invDet * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+						tan.z = invDet * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+
+						v0.Tangent += tan; v1.Tangent += tan; v2.Tangent += tan;
+					}
+
+					for (auto& v : vertices)
+					{
+						const glm::vec3& n = v.Normal;
+						glm::vec3& t = v.Tangent;
+						if (glm::length(t) < 1e-6f)
+						{
+							t = (std::abs(n.x) < 0.9f)
+								? glm::normalize(glm::cross(n, glm::vec3(1, 0, 0)))
+								: glm::normalize(glm::cross(n, glm::vec3(0, 1, 0)));
+						}
+						t = glm::normalize(t - n * glm::dot(n, t));
+						v.Bitangent = glm::cross(n, t);
 					}
 				}
 

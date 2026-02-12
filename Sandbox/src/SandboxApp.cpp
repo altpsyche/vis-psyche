@@ -5,6 +5,7 @@
 #include <VizEngine/Renderer/PBRMaterial.h>
 #include <VizEngine/OpenGL/Commons.h>
 #include <VizEngine/OpenGL/Texture3D.h>
+#include <algorithm>
 #include <chrono>
 
 class Sandbox : public VizEngine::Application
@@ -100,6 +101,8 @@ public:
 		// Load Assets
 		// =========================================================================
 		m_ShadowDepthShader = std::make_unique<VizEngine::Shader>("resources/shaders/shadow_depth.shader");
+		m_OutlineShader = std::make_shared<VizEngine::Shader>("resources/shaders/outline.shader");
+		m_InstancedShader = std::make_shared<VizEngine::Shader>("resources/shaders/instanced.shader");
 		m_DefaultTexture = std::make_shared<VizEngine::Texture>("resources/textures/uvchecker.png");
 
 		// Assign default texture to basic objects (created before this point)
@@ -125,18 +128,18 @@ public:
 			GL_UNSIGNED_BYTE    // Data type
 		);
 
-		// Create depth attachment (Depth24)
+		// Create depth-stencil attachment (Chapter 32: depth + stencil for outlines)
 		m_FramebufferDepth = std::make_shared<VizEngine::Texture>(
 			fbWidth, fbHeight,
-			GL_DEPTH_COMPONENT24,   // Internal format
-			GL_DEPTH_COMPONENT,     // Format
-			GL_FLOAT                // Data type
+			GL_DEPTH24_STENCIL8,    // Internal format (Chapter 32)
+			GL_DEPTH_STENCIL,       // Format
+			GL_UNSIGNED_INT_24_8    // Data type
 		);
 
 		// Create framebuffer and attach textures
 		m_Framebuffer = std::make_shared<VizEngine::Framebuffer>(fbWidth, fbHeight);
 		m_Framebuffer->AttachColorTexture(m_FramebufferColor, 0);
-		m_Framebuffer->AttachDepthTexture(m_FramebufferDepth);
+		m_Framebuffer->AttachDepthStencilTexture(m_FramebufferDepth);
 
 		// Verify framebuffer is complete
 		if (!m_Framebuffer->IsComplete())
@@ -286,18 +289,18 @@ public:
 			GL_FLOAT             // Data type
 		);
 
-		// Create depth texture
+		// Create depth-stencil texture (Chapter 32: depth + stencil for outlines)
 		m_HDRDepthTexture = std::make_shared<VizEngine::Texture>(
 			m_WindowWidth, m_WindowHeight,
-			GL_DEPTH_COMPONENT24,
-			GL_DEPTH_COMPONENT,
-			GL_FLOAT
+			GL_DEPTH24_STENCIL8,
+			GL_DEPTH_STENCIL,
+			GL_UNSIGNED_INT_24_8
 		);
 
 		// Create HDR framebuffer and attach textures
 		m_HDRFramebuffer = std::make_shared<VizEngine::Framebuffer>(m_WindowWidth, m_WindowHeight);
 		m_HDRFramebuffer->AttachColorTexture(m_HDRColorTexture, 0);
-		m_HDRFramebuffer->AttachDepthTexture(m_HDRDepthTexture);
+		m_HDRFramebuffer->AttachDepthStencilTexture(m_HDRDepthTexture);
 
 		// Verify framebuffer is complete
 		if (!m_HDRFramebuffer->IsComplete())
@@ -348,6 +351,11 @@ public:
 		}
 
 		VP_INFO("Post-processing initialized successfully");
+
+		// =========================================================================
+		// Chapter 35: Instancing Demo Setup
+		// =========================================================================
+		SetupInstancingDemo();
 	}
 
 	void OnUpdate(float deltaTime) override
@@ -467,16 +475,43 @@ public:
 			// Setup shader with all common uniforms
 			SetupDefaultLitShader();
 
-			// Render scene objects with PBR
+			// Render scene objects with PBR (Chapter 33: opaque first, then transparent)
 			RenderSceneObjects();
 
 			// =========================================================================
-			// Render Skybox to HDR Buffer
+			// Chapter 35: Instancing Demo
+			// =========================================================================
+			if (m_ShowInstancingDemo && m_InstancedShader && m_InstancedCubeMesh && m_InstanceVBO)
+			{
+				m_InstancedShader->Bind();
+				m_InstancedShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
+				m_InstancedShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
+				m_InstancedShader->SetVec3("u_ViewPos", m_Camera.GetPosition());
+				m_InstancedShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
+				m_InstancedShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
+				m_InstancedShader->SetVec3("u_ObjectColor", m_InstanceColor);
+
+				m_InstancedCubeMesh->Bind();
+				renderer.DrawInstanced(
+					m_InstancedCubeMesh->GetVertexArray(),
+					m_InstancedCubeMesh->GetIndexBuffer(),
+					*m_InstancedShader,
+					m_InstanceCount
+				);
+			}
+
+			// =========================================================================
+			// Render Skybox to HDR Buffer (before outlines so outlines draw on top)
 			// =========================================================================
 			if (m_ShowSkybox && m_Skybox)
 			{
 				m_Skybox->Render(m_Camera);
 			}
+
+			// =========================================================================
+			// Chapter 32: Stencil Outline Pass (after skybox so outline is visible)
+			// =========================================================================
+			RenderStencilOutline(renderer);
 
 			m_HDRFramebuffer->Unbind();
 		}
@@ -488,24 +523,26 @@ public:
 				VP_WARN("HDR rendering disabled, falling back to LDR path");
 				m_HdrFallbackWarned = true;
 			}
-			
+
 			// Only proceed if m_DefaultLitShader is valid
 			if (m_DefaultLitShader)
 			{
 				// Render directly to screen without HDR
 				renderer.Clear(m_ClearColor);
-				
+
 				// Setup shader with all common uniforms
 				SetupDefaultLitShader();
-				
+
 				// Render scene
 				RenderSceneObjects();
-					
-				// Render skybox
+
+				// Render skybox before outlines
 				if (m_ShowSkybox && m_Skybox)
 				{
 					m_Skybox->Render(m_Camera);
 				}
+
+				RenderStencilOutline(renderer);
 			}
 		}
 
@@ -984,6 +1021,45 @@ public:
 		}
 
 		uiManager.EndWindow();
+
+		// =========================================================================
+		// Part X: OpenGL Essentials Panel (Chapters 32-35)
+		// =========================================================================
+		uiManager.StartWindow("OpenGL Essentials");
+
+		// Chapter 32: Stencil Outlines
+		if (uiManager.CollapsingHeader("Stencil Outlines (Ch 32)"))
+		{
+			uiManager.Checkbox("Enable Outlines", &m_EnableOutlines);
+			uiManager.ColorEdit4("Outline Color", &m_OutlineColor.x);
+			uiManager.SliderFloat("Outline Scale", &m_OutlineScale, 1.01f, 1.3f);
+			uiManager.Text("Outline drawn on: %s",
+				(m_SelectedObject >= 0 && m_SelectedObject < static_cast<int>(m_Scene.Size()))
+					? m_Scene[static_cast<size_t>(m_SelectedObject)].Name.c_str()
+					: "None");
+			uiManager.Text("Toggle: F5");
+		}
+
+		// Chapter 33: Transparency
+		if (uiManager.CollapsingHeader("Transparency (Ch 33)"))
+		{
+			uiManager.Text("Set alpha < 1.0 via Color editor above.");
+			uiManager.Text("Transparent objects are sorted back-to-front.");
+		}
+
+		// Chapter 35: Instancing
+		if (uiManager.CollapsingHeader("Instancing (Ch 35)"))
+		{
+			uiManager.Checkbox("Show Instancing Demo", &m_ShowInstancingDemo);
+			uiManager.ColorEdit3("Instance Color", &m_InstanceColor.x);
+			if (m_ShowInstancingDemo)
+			{
+				uiManager.Text("Instances: %d cubes", m_InstanceCount);
+				uiManager.Text("Drawn in 1 draw call");
+			}
+		}
+
+		uiManager.EndWindow();
 	}
 
 	void OnEvent(VizEngine::Event& e) override
@@ -1017,12 +1093,12 @@ public:
 							m_WindowWidth, m_WindowHeight, GL_RGB16F, GL_RGB, GL_FLOAT
 						);
 						auto newDepthTexture = std::make_shared<VizEngine::Texture>(
-							m_WindowWidth, m_WindowHeight, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT
+							m_WindowWidth, m_WindowHeight, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8
 						);
 
 						auto newFramebuffer = std::make_shared<VizEngine::Framebuffer>(m_WindowWidth, m_WindowHeight);
 						newFramebuffer->AttachColorTexture(newColorTexture, 0);
-						newFramebuffer->AttachDepthTexture(newDepthTexture);
+						newFramebuffer->AttachDepthStencilTexture(newDepthTexture);
 
 						// Validate new framebuffer
 						if (!newFramebuffer->IsComplete())
@@ -1132,6 +1208,13 @@ public:
 					VP_INFO("Skybox: {}", m_ShowSkybox ? "ON" : "OFF");
 					return true;  // Consumed
 				}
+				// F5 toggles Stencil Outlines (Chapter 32)
+				if (event.GetKeyCode() == VizEngine::KeyCode::F5 && !event.IsRepeat())
+				{
+					m_EnableOutlines = !m_EnableOutlines;
+					VP_INFO("Stencil Outlines: {}", m_EnableOutlines ? "ON" : "OFF");
+					return true;  // Consumed
+				}
 				return false;
 			}
 		);
@@ -1191,38 +1274,85 @@ private:
 
 		if (!m_PBRMaterial) return;
 
-		for (auto& obj : m_Scene)
+		// Chapter 33: Separate opaque and transparent objects
+		std::vector<size_t> opaqueIndices;
+		std::vector<size_t> transparentIndices;
+
+		for (size_t i = 0; i < m_Scene.Size(); i++)
 		{
+			auto& obj = m_Scene[i];
 			if (!obj.Active || !obj.MeshPtr) continue;
 
-			glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
-			glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-
-			// Use Material System (Chapter 38)
-			m_PBRMaterial->SetModelMatrix(model);
-			m_PBRMaterial->SetNormalMatrix(normalMatrix);
-			m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
-			m_PBRMaterial->SetMetallic(obj.Metallic);
-			m_PBRMaterial->SetRoughness(obj.Roughness);
-			m_PBRMaterial->SetAO(1.0f);
-
-			// Handle texture
-			if (obj.TexturePtr)
-			{
-				m_PBRMaterial->SetAlbedoTexture(obj.TexturePtr);
-			}
+			if (obj.Color.a < 1.0f)
+				transparentIndices.push_back(i);
 			else
+				opaqueIndices.push_back(i);
+		}
+
+		// Render opaque objects first
+		for (size_t idx : opaqueIndices)
+		{
+			RenderSingleObject(m_Scene[idx], renderer);
+		}
+
+		// Sort transparent objects back-to-front (Chapter 33)
+		if (!transparentIndices.empty())
+		{
+			glm::vec3 camPos = m_Camera.GetPosition();
+			std::sort(transparentIndices.begin(), transparentIndices.end(),
+				[this, &camPos](size_t a, size_t b) {
+					float distA = glm::length(m_Scene[a].ObjectTransform.Position - camPos);
+					float distB = glm::length(m_Scene[b].ObjectTransform.Position - camPos);
+					return distA > distB;  // Far objects first
+				});
+
+			// Enable blending for transparent objects
+			renderer.EnableBlending();
+			renderer.SetBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			renderer.SetDepthMask(false);  // Don't write to depth buffer
+
+			for (size_t idx : transparentIndices)
 			{
-				m_PBRMaterial->SetAlbedoTexture(nullptr);
+				RenderSingleObject(m_Scene[idx], renderer);
 			}
 
-			// Bind material (uploads all uniforms)
-			m_PBRMaterial->Bind();
-
-			obj.MeshPtr->Bind();
-			renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(),
-			              *m_PBRMaterial->GetShader());
+			// Restore state
+			renderer.SetDepthMask(true);
+			renderer.DisableBlending();
 		}
+	}
+
+	// Helper: Render a single scene object with PBR material
+	void RenderSingleObject(VizEngine::SceneObject& obj, VizEngine::Renderer& renderer)
+	{
+		glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
+		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+
+		// Use Material System (Chapter 38)
+		m_PBRMaterial->SetModelMatrix(model);
+		m_PBRMaterial->SetNormalMatrix(normalMatrix);
+		m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
+		m_PBRMaterial->SetAlpha(obj.Color.a);  // Chapter 33: alpha transparency
+		m_PBRMaterial->SetMetallic(obj.Metallic);
+		m_PBRMaterial->SetRoughness(obj.Roughness);
+		m_PBRMaterial->SetAO(1.0f);
+
+		// Handle texture
+		if (obj.TexturePtr)
+		{
+			m_PBRMaterial->SetAlbedoTexture(obj.TexturePtr);
+		}
+		else
+		{
+			m_PBRMaterial->SetAlbedoTexture(nullptr);
+		}
+
+		// Bind material (uploads all uniforms)
+		m_PBRMaterial->Bind();
+
+		obj.MeshPtr->Bind();
+		renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(),
+		              *m_PBRMaterial->GetShader());
 	}
 
 	// =========================================================================
@@ -1285,6 +1415,105 @@ private:
 		// Lower hemisphere fallback (prevents black reflections on flat surfaces)
 		m_PBRMaterial->SetLowerHemisphereColor(m_LowerHemisphereColor);
 		m_PBRMaterial->SetLowerHemisphereIntensity(m_LowerHemisphereIntensity);
+	}
+
+	// =========================================================================
+	// Helper: Chapter 32 — Render stencil outline around selected object
+	// =========================================================================
+	void RenderStencilOutline(VizEngine::Renderer& renderer)
+	{
+		if (!m_EnableOutlines || !m_OutlineShader) return;
+		if (m_SelectedObject < 0 || m_SelectedObject >= static_cast<int>(m_Scene.Size())) return;
+
+		auto& obj = m_Scene[static_cast<size_t>(m_SelectedObject)];
+		if (!obj.Active || !obj.MeshPtr) return;
+
+		// Pass 1: Fill stencil buffer with 1s where the selected object is
+		renderer.ClearStencil();
+		renderer.EnableStencilTest();
+		renderer.SetStencilFunc(GL_ALWAYS, 1, 0xFF);
+		renderer.SetStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+		renderer.SetStencilMask(0xFF);
+		renderer.SetDepthFunc(GL_LEQUAL);  // Allow re-rendering at same depth
+
+		// Re-render selected object (writes 1s to stencil where visible)
+		RenderSingleObject(obj, renderer);
+
+		renderer.SetDepthFunc(GL_LESS);  // Restore
+
+		// Pass 2: Render scaled-up outline where stencil != 1
+		renderer.SetStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+		renderer.SetStencilMask(0x00);     // Don't write to stencil
+		renderer.SetDepthMask(false);      // Don't write to depth
+
+		m_OutlineShader->Bind();
+		m_OutlineShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
+		m_OutlineShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
+		m_OutlineShader->SetVec4("u_OutlineColor", m_OutlineColor);
+
+		glm::mat4 scaledModel = glm::scale(
+			obj.ObjectTransform.GetModelMatrix(),
+			glm::vec3(m_OutlineScale)
+		);
+		m_OutlineShader->SetMatrix4fv("u_Model", scaledModel);
+
+		obj.MeshPtr->Bind();
+		renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *m_OutlineShader);
+
+		// Restore state
+		renderer.SetDepthMask(true);
+		renderer.SetStencilMask(0xFF);
+		renderer.DisableStencilTest();
+	}
+
+	// =========================================================================
+	// Helper: Chapter 35 — Setup instancing demo
+	// =========================================================================
+	void SetupInstancingDemo()
+	{
+		// Create a dedicated cube mesh for instancing (separate VAO from scene cubes)
+		m_InstancedCubeMesh = std::shared_ptr<VizEngine::Mesh>(VizEngine::Mesh::CreateCube().release());
+
+		// Generate a grid of instance transforms
+		const int gridSize = 10;
+		m_InstanceCount = gridSize * gridSize;
+		std::vector<glm::mat4> instanceMatrices(m_InstanceCount);
+
+		float spacing = 3.0f;
+		float offset = (gridSize - 1) * spacing * 0.5f;
+
+		int index = 0;
+		for (int z = 0; z < gridSize; z++)
+		{
+			for (int x = 0; x < gridSize; x++)
+			{
+				glm::mat4 model = glm::mat4(1.0f);
+				model = glm::translate(model, glm::vec3(
+					x * spacing - offset,
+					5.0f,   // Elevated above scene
+					z * spacing - offset
+				));
+				instanceMatrices[index++] = model;
+			}
+		}
+
+		// Create instance VBO with transform data
+		m_InstanceVBO = std::make_unique<VizEngine::VertexBuffer>(
+			instanceMatrices.data(),
+			static_cast<unsigned int>(m_InstanceCount * sizeof(glm::mat4))
+		);
+
+		// Setup instance attributes on the dedicated cube mesh's VAO
+		// mat4 = 4 x vec4 (locations 6, 7, 8, 9)
+		VizEngine::VertexBufferLayout instanceLayout;
+		instanceLayout.Push<float>(4);  // Column 0 (location 6)
+		instanceLayout.Push<float>(4);  // Column 1 (location 7)
+		instanceLayout.Push<float>(4);  // Column 2 (location 8)
+		instanceLayout.Push<float>(4);  // Column 3 (location 9)
+
+		m_InstancedCubeMesh->GetVertexArray().LinkInstanceBuffer(*m_InstanceVBO, instanceLayout, 6);
+
+		VP_INFO("Instancing demo ready: {} instances ({}x{} grid)", m_InstanceCount, gridSize, gridSize);
 	}
 
 	// Scene
@@ -1402,6 +1631,24 @@ private:
 	float m_Saturation = 1.0f;
 	float m_Contrast = 1.0f;
 	float m_Brightness = 0.0f;
+
+	// =========================================================================
+	// Part X: OpenGL Essentials (Chapters 32-35)
+	// =========================================================================
+
+	// Chapter 32: Stencil Outlines
+	std::shared_ptr<VizEngine::Shader> m_OutlineShader;
+	bool m_EnableOutlines = true;
+	glm::vec4 m_OutlineColor = glm::vec4(1.0f, 0.6f, 0.0f, 1.0f);  // Orange
+	float m_OutlineScale = 1.05f;
+
+	// Chapter 35: Instancing
+	std::shared_ptr<VizEngine::Shader> m_InstancedShader;
+	std::shared_ptr<VizEngine::Mesh> m_InstancedCubeMesh;
+	std::unique_ptr<VizEngine::VertexBuffer> m_InstanceVBO;
+	int m_InstanceCount = 0;
+	bool m_ShowInstancingDemo = false;
+	glm::vec3 m_InstanceColor = glm::vec3(0.4f, 0.7f, 0.9f);  // Light blue
 };
 
 std::unique_ptr<VizEngine::Application> VizEngine::CreateApplication(VizEngine::EngineConfig& config)
