@@ -55,6 +55,27 @@ namespace VizEngine
 		}
 	}
 
+	// Chapter 35: Links a per-instance VBO with glVertexAttribDivisor
+	void VertexArray::LinkInstanceBuffer(const VertexBuffer& instanceBuffer,
+	                                      const VertexBufferLayout& layout,
+	                                      unsigned int startAttribIndex) const
+	{
+		Bind();
+		instanceBuffer.Bind();
+		const auto& elements = layout.GetElements();
+		unsigned int offset = 0;
+		for (unsigned int i = 0; i < elements.size(); i++)
+		{
+			unsigned int attribIndex = startAttribIndex + i;
+			const auto& element = elements[i];
+			glEnableVertexAttribArray(attribIndex);
+			glVertexAttribPointer(attribIndex, element.count, element.type, element.normalised,
+			                      layout.GetStride(), reinterpret_cast<const void*>(static_cast<size_t>(offset)));
+			glVertexAttribDivisor(attribIndex, 1);  // Advance once per instance
+			offset += element.count * VertexBufferElement::GetSizeOfType(element.type);
+		}
+	}
+
 	// Binds the VertexArray
 	void VertexArray::Bind() const
 	{

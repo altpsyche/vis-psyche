@@ -62,6 +62,12 @@ namespace VizEngine
 		void AttachDepthTexture(std::shared_ptr<Texture> texture);
 
 		/**
+		 * Attach a combined depth-stencil texture (Chapter 32).
+		 * @param texture The texture to attach (format must be GL_DEPTH24_STENCIL8 or GL_DEPTH32F_STENCIL8)
+		 */
+		void AttachDepthStencilTexture(std::shared_ptr<Texture> texture);
+
+		/**
 		 * Check if the framebuffer is complete and ready for rendering.
 		 * Call this after adding all attachments.
 		 * @return true if complete, false otherwise

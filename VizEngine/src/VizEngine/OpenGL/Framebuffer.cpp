@@ -155,6 +155,34 @@ namespace VizEngine
 		VP_CORE_INFO("Framebuffer {}: Attached depth texture {}", m_fbo, texture->GetID());
 	}
 
+	void Framebuffer::AttachDepthStencilTexture(std::shared_ptr<Texture> texture)
+	{
+		if (!texture)
+		{
+			VP_CORE_ERROR("Framebuffer: Cannot attach null depth-stencil texture");
+			return;
+		}
+
+		if (texture->GetWidth() != m_Width || texture->GetHeight() != m_Height)
+		{
+			VP_CORE_WARN("Framebuffer: Depth-stencil texture dimensions ({}x{}) don't match framebuffer ({}x{})",
+				texture->GetWidth(), texture->GetHeight(), m_Width, m_Height);
+		}
+
+		Bind();
+		glFramebufferTexture2D(
+			GL_FRAMEBUFFER,
+			GL_DEPTH_STENCIL_ATTACHMENT,
+			GL_TEXTURE_2D,
+			texture->GetID(),
+			0
+		);
+
+		m_DepthAttachment = texture;
+
+		VP_CORE_INFO("Framebuffer {}: Attached depth-stencil texture {}", m_fbo, texture->GetID());
+	}
+
 	bool Framebuffer::IsComplete() const
 	{
 		// Temporarily bind framebuffer to check status

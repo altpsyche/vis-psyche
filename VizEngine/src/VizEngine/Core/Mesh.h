@@ -11,23 +11,27 @@
 
 namespace VizEngine
 {
-	// Vertex structure with position, normal, color, and texture coordinates
+	// Vertex structure with position, normal, color, texture coordinates, and tangent frame
 	struct Vertex
 	{
 		glm::vec4 Position;
 		glm::vec3 Normal;
 		glm::vec4 Color;
 		glm::vec2 TexCoords;
+		glm::vec3 Tangent;    // Tangent vector for normal mapping (Chapter 34)
+		glm::vec3 Bitangent;  // Bitangent vector for normal mapping (Chapter 34)
 
 		Vertex() = default;
-		
+
 		// Constructor with normal
 		Vertex(const glm::vec4& pos, const glm::vec3& norm, const glm::vec4& col, const glm::vec2& tex)
-			: Position(pos), Normal(norm), Color(col), TexCoords(tex) {}
+			: Position(pos), Normal(norm), Color(col), TexCoords(tex),
+			  Tangent(0.0f), Bitangent(0.0f) {}
 
 		// Legacy constructor (defaults normal to up)
 		Vertex(const glm::vec4& pos, const glm::vec4& col, const glm::vec2& tex)
-			: Position(pos), Normal(0.0f, 1.0f, 0.0f), Color(col), TexCoords(tex) {}
+			: Position(pos), Normal(0.0f, 1.0f, 0.0f), Color(col), TexCoords(tex),
+			  Tangent(0.0f), Bitangent(0.0f) {}
 	};
 
 	class VizEngine_API Mesh
@@ -56,6 +60,7 @@ namespace VizEngine
 		static std::unique_ptr<Mesh> CreatePyramid();
 		static std::unique_ptr<Mesh> CreateCube();
 		static std::unique_ptr<Mesh> CreatePlane(float size = 1.0f);
+		static std::unique_ptr<Mesh> CreateSphere(float radius = 1.0f, int segments = 32);
 
 	private:
 		void SetupMesh(const float* vertexData, size_t vertexDataSize, const unsigned int* indices, size_t indexCount);

@@ -17,8 +17,17 @@
 #include "VizEngine/OpenGL/Shader.h"
 #include "VizEngine/OpenGL/Texture.h"
 #include "VizEngine/OpenGL/Framebuffer.h"
+#include "VizEngine/OpenGL/FullscreenQuad.h"
 #include "VizEngine/OpenGL/CubemapUtils.h"
 #include "VizEngine/Renderer/Skybox.h"
+#include "VizEngine/Renderer/Bloom.h"
+
+// Material System (Chapter 38)
+#include "VizEngine/Renderer/MaterialParameter.h"
+#include "VizEngine/Renderer/RenderMaterial.h"
+#include "VizEngine/Renderer/PBRMaterial.h"
+#include "VizEngine/Renderer/UnlitMaterial.h"
+#include "VizEngine/Renderer/MaterialFactory.h"
 
 // Core types
 #include "VizEngine/Core/Camera.h"

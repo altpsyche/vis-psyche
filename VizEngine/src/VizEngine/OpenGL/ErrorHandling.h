@@ -1,9 +1,7 @@
 #pragma once
 
-#include "Commons.h"
+#include <glad/glad.h>
 #include "VizEngine/Core.h"
-
-#define VP_ASSERT(x) if (!(x)) __debugbreak();
 
 namespace VizEngine
 {
