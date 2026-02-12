@@ -9,7 +9,10 @@ namespace VizEngine
 {
     /**
      * Physically-Based Rendering material for use with defaultlit.shader.
-     * Encapsulates metallic-roughness workflow parameters.
+     * Encapsulates surface properties (metallic-roughness workflow) and texture bindings.
+     *
+     * Note: Transform and camera matrices are NOT part of the material.
+     * Renderers set those directly on the shader (per-frame/per-object concern).
      *
      * Usage:
      *   auto pbrMaterial = std::make_shared<PBRMaterial>(shader);
@@ -73,29 +76,10 @@ namespace VizEngine
         float GetLowerHemisphereIntensity() const;
 
         // =====================================================================
-        // Shadow Mapping
+        // Shadow Map Texture
         // =====================================================================
 
         void SetShadowMap(std::shared_ptr<Texture> shadowMap);
-        void SetLightSpaceMatrix(const glm::mat4& lightSpaceMatrix);
-        void SetUseShadows(bool useShadows);
-
-        // =====================================================================
-        // Transform (per-object, set before each draw)
-        // =====================================================================
-
-        void SetModelMatrix(const glm::mat4& model);
-        void SetNormalMatrix(const glm::mat3& normalMatrix);
-        void SetViewMatrix(const glm::mat4& view);
-        void SetProjectionMatrix(const glm::mat4& projection);
-        void SetViewPosition(const glm::vec3& viewPos);
-
-        /**
-         * Set all matrices at once (including normal matrix).
-         */
-        void SetTransforms(const glm::mat4& model, const glm::mat4& view,
-                          const glm::mat4& projection, const glm::vec3& viewPos,
-                          const glm::mat3& normalMatrix);
 
     protected:
         void UploadParameters() override;
@@ -109,12 +93,11 @@ namespace VizEngine
         float m_Alpha = 1.0f;
 
         bool m_UseIBL = false;
-        bool m_UseShadows = false;
         bool m_HasAlbedoTexture = false;
         bool m_HasNormalTexture = false;
 
         // Lower hemisphere fallback
-        glm::vec3 m_LowerHemisphereColor = glm::vec3(0.1f, 0.1f, 0.15f);  // Slightly blue-ish ground color
-        float m_LowerHemisphereIntensity = 0.5f;  // Default to half intensity
+        glm::vec3 m_LowerHemisphereColor = glm::vec3(0.1f, 0.1f, 0.15f);
+        float m_LowerHemisphereIntensity = 0.5f;
     };
 }

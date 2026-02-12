@@ -1,11 +1,11 @@
 #include <VizEngine.h>
 #include <VizEngine/Events/ApplicationEvent.h>
 #include <VizEngine/Events/KeyEvent.h>
-#include <VizEngine/Renderer/Bloom.h>
+#include <VizEngine/Renderer/SceneRenderer.h>
+#include <VizEngine/Renderer/PostProcessPipeline.h>
+#include <VizEngine/Renderer/ShadowPass.h>
 #include <VizEngine/Renderer/PBRMaterial.h>
 #include <VizEngine/OpenGL/Commons.h>
-#include <VizEngine/OpenGL/Texture3D.h>
-#include <algorithm>
 #include <chrono>
 
 class Sandbox : public VizEngine::Application
@@ -23,18 +23,15 @@ public:
 		// =========================================================================
 		// Build Scene
 		// =========================================================================
-		// Add a ground plane
 		auto& ground = m_Scene.Add(m_PlaneMesh, "Ground");
 		ground.ObjectTransform.Position = glm::vec3(0.0f, -1.0f, 0.0f);
 		ground.Color = glm::vec4(0.3f, 0.3f, 0.35f, 1.0f);
 
-		// Add a pyramid
 		auto& pyramid = m_Scene.Add(m_PyramidMesh, "Pyramid");
 		pyramid.ObjectTransform.Position = glm::vec3(-3.0f, 0.0f, 0.0f);
 		pyramid.ObjectTransform.Scale = glm::vec3(2.0f, 4.0f, 2.0f);
 		pyramid.Color = glm::vec4(0.3f, 0.5f, 0.9f, 1.0f);
 
-		// Add a cube
 		auto& cube = m_Scene.Add(m_CubeMesh, "Cube");
 		cube.ObjectTransform.Position = glm::vec3(3.0f, 0.0f, 0.0f);
 		cube.ObjectTransform.Scale = glm::vec3(2.0f);
@@ -48,7 +45,6 @@ public:
 		{
 			VP_INFO("Duck model loaded: {} meshes", duckModel->GetMeshCount());
 
-			// Store mesh and material properties for reuse (Add Duck button)
 			if (duckModel->GetMeshCount() > 0)
 			{
 				m_DuckMesh = duckModel->GetMeshes()[0];
@@ -56,26 +52,20 @@ public:
 				m_DuckColor = material.BaseColor;
 				m_DuckRoughness = material.Roughness;
 				if (material.BaseColorTexture)
-				{
 					m_DuckTexture = material.BaseColorTexture;
-				}
 			}
 
-			// Add initial duck to scene
 			for (size_t i = 0; i < duckModel->GetMeshCount(); i++)
 			{
 				auto& duckObj = m_Scene.Add(duckModel->GetMeshes()[i], "Duck");
 				duckObj.ObjectTransform.Position = glm::vec3(0.0f, 0.0f, 3.0f);
 				duckObj.ObjectTransform.Scale = glm::vec3(0.02f);
 
-				// Copy material properties from glTF
 				const auto& material = duckModel->GetMaterialForMesh(i);
 				duckObj.Color = material.BaseColor;
 				duckObj.Roughness = material.Roughness;
 				if (material.BaseColorTexture)
-				{
 					duckObj.TexturePtr = material.BaseColorTexture;
-				}
 			}
 		}
 		else
@@ -98,97 +88,16 @@ public:
 		m_Camera.SetPosition(glm::vec3(0.0f, 6.0f, -15.0f));
 
 		// =========================================================================
-		// Load Assets
+		// Load Shared Assets
 		// =========================================================================
-		m_ShadowDepthShader = std::make_unique<VizEngine::Shader>("resources/shaders/shadow_depth.shader");
-		m_OutlineShader = std::make_shared<VizEngine::Shader>("resources/shaders/outline.shader");
-		m_InstancedShader = std::make_shared<VizEngine::Shader>("resources/shaders/instanced.shader");
 		m_DefaultTexture = std::make_shared<VizEngine::Texture>("resources/textures/uvchecker.png");
+		m_InstancedShader = std::make_shared<VizEngine::Shader>("resources/shaders/instanced.shader");
 
-		// Assign default texture to basic objects (created before this point)
+		// Assign default texture to objects that don't have one
 		for (size_t i = 0; i < m_Scene.Size(); i++)
 		{
 			if (!m_Scene[i].TexturePtr)
-			{
 				m_Scene[i].TexturePtr = m_DefaultTexture;
-			}
-		}
-
-		// =========================================================================
-		// Create Framebuffer for offscreen rendering
-		// =========================================================================
-		int fbWidth = 800;
-		int fbHeight = 800;
-
-		// Create color attachment (RGBA8)
-		m_FramebufferColor = std::make_shared<VizEngine::Texture>(
-			fbWidth, fbHeight,
-			GL_RGBA8,           // Internal format
-			GL_RGBA,            // Format
-			GL_UNSIGNED_BYTE    // Data type
-		);
-
-		// Create depth-stencil attachment (Chapter 32: depth + stencil for outlines)
-		m_FramebufferDepth = std::make_shared<VizEngine::Texture>(
-			fbWidth, fbHeight,
-			GL_DEPTH24_STENCIL8,    // Internal format (Chapter 32)
-			GL_DEPTH_STENCIL,       // Format
-			GL_UNSIGNED_INT_24_8    // Data type
-		);
-
-		// Create framebuffer and attach textures
-		m_Framebuffer = std::make_shared<VizEngine::Framebuffer>(fbWidth, fbHeight);
-		m_Framebuffer->AttachColorTexture(m_FramebufferColor, 0);
-		m_Framebuffer->AttachDepthStencilTexture(m_FramebufferDepth);
-
-		// Verify framebuffer is complete
-		if (!m_Framebuffer->IsComplete())
-		{
-			VP_ERROR("Framebuffer is not complete! Disabling offscreen render.");
-			m_Framebuffer.reset();
-			m_ShowFramebufferTexture = false;
-		}
-		else
-		{
-			VP_INFO("Framebuffer created successfully: {}x{}", fbWidth, fbHeight);
-		}
-
-		// =========================================================================
-		// Create Shadow Map Framebuffer (depth-only, for shadow rendering)
-		// =========================================================================
-		int shadowMapResolution = 2048;  // Higher = crisper shadows (1024, 2048, 4096)
-
-		// Create depth texture for shadow map
-		m_ShadowMapDepth = std::make_shared<VizEngine::Texture>(
-			shadowMapResolution, shadowMapResolution,
-			GL_DEPTH_COMPONENT24,   // Internal format (24-bit depth)
-			GL_DEPTH_COMPONENT,     // Format
-			GL_FLOAT                // Data type
-		);
-		
-		// Configure shadow map texture for correct sampling
-		m_ShadowMapDepth->SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_BORDER);
-		float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		m_ShadowMapDepth->SetBorderColor(borderColor);
-
-		// Create framebuffer and attach depth texture only (no color)
-		m_ShadowMapFramebuffer = std::make_shared<VizEngine::Framebuffer>(
-			shadowMapResolution, shadowMapResolution
-		);
-		m_ShadowMapFramebuffer->AttachDepthTexture(m_ShadowMapDepth);
-
-		// Verify shadow map framebuffer is complete
-		if (!m_ShadowMapFramebuffer->IsComplete())
-		{
-			VP_ERROR("Shadow map framebuffer is not complete! Disabling shadows.");
-			m_ShadowMapFramebuffer.reset();
-			// Also reset depth texture to avoid binding invalid texture
-			m_ShadowMapDepth.reset();
-			m_ShowShadowMap = false;
-		}
-		else
-		{
-			VP_INFO("Shadow map framebuffer created: {}x{}", shadowMapResolution, shadowMapResolution);
 		}
 
 		// =========================================================================
@@ -196,26 +105,15 @@ public:
 		// =========================================================================
 		VP_INFO("Loading environment HDRI...");
 
-		// Load HDR equirectangular map
-		m_EnvironmentHDRI = std::make_shared<VizEngine::Texture>(
-			"resources/textures/environments/qwantani_dusk_2_puresky_2k.hdr", 
-			true  // isHDR
+		auto environmentHDRI = std::make_shared<VizEngine::Texture>(
+			"resources/textures/environments/qwantani_dusk_2_puresky_2k.hdr", true
 		);
 
-		// Convert to cubemap (one-time operation)
-		int cubemapResolution = 512;  // 512x512 per face
-		m_SkyboxCubemap = VizEngine::CubemapUtils::EquirectangularToCubemap(
-			m_EnvironmentHDRI, 
-			cubemapResolution
-		);
+		int cubemapResolution = 512;
+		m_SkyboxCubemap = VizEngine::CubemapUtils::EquirectangularToCubemap(environmentHDRI, cubemapResolution);
+		environmentHDRI.reset();
 
-		// Release original HDRI to free memory (~6MB for 2K texture)
-		// The cubemap now contains all the data we need
-		m_EnvironmentHDRI.reset();
-
-		// Create skybox
 		m_Skybox = std::make_unique<VizEngine::Skybox>(m_SkyboxCubemap);
-
 		VP_INFO("Skybox ready!");
 
 		// =========================================================================
@@ -227,29 +125,16 @@ public:
 		m_PrefilteredMap = VizEngine::CubemapUtils::GeneratePrefilteredMap(m_SkyboxCubemap, 512);
 		m_BRDFLut = VizEngine::CubemapUtils::GenerateBRDFLUT(512);
 
-		// Validate IBL maps and disable IBL if any failed
-		if (!m_IrradianceMap)
+		bool iblValid = m_IrradianceMap && m_PrefilteredMap && m_BRDFLut;
+		if (!iblValid)
 		{
-			VP_ERROR("Failed to generate irradiance map - IBL disabled");
-			m_UseIBL = false;
-		}
-		if (!m_PrefilteredMap)
-		{
-			VP_ERROR("Failed to generate prefiltered environment map - IBL disabled");
-			m_UseIBL = false;
-		}
-		if (!m_BRDFLut)
-		{
-			VP_ERROR("Failed to generate BRDF LUT - IBL disabled");
+			VP_ERROR("Failed to generate IBL maps - IBL disabled");
 			m_UseIBL = false;
 		}
 
 		auto iblEnd = std::chrono::high_resolution_clock::now();
 		auto iblDuration = std::chrono::duration_cast<std::chrono::milliseconds>(iblEnd - iblStart);
-		if (m_UseIBL)
-		{
-			VP_INFO("IBL maps generated in {}ms", iblDuration.count());
-		}
+		if (m_UseIBL) VP_INFO("IBL maps generated in {}ms", iblDuration.count());
 
 		// =========================================================================
 		// PBR Rendering Setup (Chapter 37)
@@ -257,15 +142,13 @@ public:
 		m_DefaultLitShader = std::make_shared<VizEngine::Shader>("resources/shaders/defaultlit.shader");
 		if (!m_DefaultLitShader->IsValid())
 		{
-			VP_ERROR("Failed to load m_DefaultLitShader - cannot initialize PBR rendering!");
+			VP_ERROR("Failed to load defaultlit shader!");
 			return;
 		}
 
-		// Initialize PBR Material (Chapter 42 - Material System)
 		m_PBRMaterial = std::make_shared<VizEngine::PBRMaterial>(m_DefaultLitShader, "Scene PBR Material");
 
-		// Setup IBL maps on material if available
-		if (m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut)
+		if (m_UseIBL && iblValid)
 		{
 			m_PBRMaterial->SetIrradianceMap(m_IrradianceMap);
 			m_PBRMaterial->SetPrefilteredMap(m_PrefilteredMap);
@@ -277,80 +160,52 @@ public:
 		VP_INFO("PBR rendering initialized");
 
 		// =========================================================================
-		// HDR Pipeline Setup (Chapter 39)
+		// Create Scene Renderer (Chapter 43)
 		// =========================================================================
-		VP_INFO("Setting up HDR pipeline...");
+		m_SceneRenderer = std::make_unique<VizEngine::SceneRenderer>(m_WindowWidth, m_WindowHeight);
 
-		// Create HDR color texture (RGB16F)
-		m_HDRColorTexture = std::make_shared<VizEngine::Texture>(
-			m_WindowWidth, m_WindowHeight,
-			GL_RGB16F,           // Internal format (HDR)
-			GL_RGB,              // Format
-			GL_FLOAT             // Data type
+		// Wire up external resources
+		m_SceneRenderer->SetDefaultLitShader(m_DefaultLitShader);
+		m_SceneRenderer->SetPBRMaterial(m_PBRMaterial);
+		m_SceneRenderer->SetIBLMaps(m_IrradianceMap, m_PrefilteredMap, m_BRDFLut);
+		m_SceneRenderer->SetUseIBL(m_UseIBL);
+		m_SceneRenderer->SetIBLIntensity(m_IBLIntensity);
+		m_SceneRenderer->SetDirectionalLight(&m_Light);
+		m_SceneRenderer->SetPointLights(m_PBRLightPositions, m_PBRLightColors, 4);
+		m_SceneRenderer->SetSkybox(m_Skybox.get());
+		m_SceneRenderer->SetShowSkybox(m_ShowSkybox);
+		m_SceneRenderer->SetClearColor(m_ClearColor);
+
+		// Outline settings
+		auto outlineShader = std::make_shared<VizEngine::Shader>("resources/shaders/outline.shader");
+		m_SceneRenderer->SetOutlineShader(outlineShader);
+		m_SceneRenderer->SetEnableOutlines(m_EnableOutlines);
+		m_SceneRenderer->SetOutlineColor(m_OutlineColor);
+		m_SceneRenderer->SetOutlineScale(m_OutlineScale);
+		m_SceneRenderer->SetSelectedObject(m_SelectedObject);
+
+		VP_INFO("Scene Renderer initialized: {}", m_SceneRenderer->GetRenderPathName());
+
+		// =========================================================================
+		// Offscreen Preview Framebuffer (F2)
+		// =========================================================================
+		int fbWidth = 800, fbHeight = 800;
+		m_FramebufferColor = std::make_shared<VizEngine::Texture>(
+			fbWidth, fbHeight, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE
 		);
-
-		// Create depth-stencil texture (Chapter 32: depth + stencil for outlines)
-		m_HDRDepthTexture = std::make_shared<VizEngine::Texture>(
-			m_WindowWidth, m_WindowHeight,
-			GL_DEPTH24_STENCIL8,
-			GL_DEPTH_STENCIL,
-			GL_UNSIGNED_INT_24_8
+		m_FramebufferDepth = std::make_shared<VizEngine::Texture>(
+			fbWidth, fbHeight, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8
 		);
+		m_Framebuffer = std::make_shared<VizEngine::Framebuffer>(fbWidth, fbHeight);
+		m_Framebuffer->AttachColorTexture(m_FramebufferColor, 0);
+		m_Framebuffer->AttachDepthStencilTexture(m_FramebufferDepth);
 
-		// Create HDR framebuffer and attach textures
-		m_HDRFramebuffer = std::make_shared<VizEngine::Framebuffer>(m_WindowWidth, m_WindowHeight);
-		m_HDRFramebuffer->AttachColorTexture(m_HDRColorTexture, 0);
-		m_HDRFramebuffer->AttachDepthStencilTexture(m_HDRDepthTexture);
-
-		// Verify framebuffer is complete
-		if (!m_HDRFramebuffer->IsComplete())
+		if (!m_Framebuffer->IsComplete())
 		{
-			VP_ERROR("HDR Framebuffer is not complete!");
-			m_HDREnabled = false;
+			VP_ERROR("Offscreen framebuffer not complete!");
+			m_Framebuffer.reset();
+			m_ShowFramebufferTexture = false;
 		}
-		else
-		{
-			VP_INFO("HDR Framebuffer created successfully: {}x{} (RGB16F)", 
-			        m_WindowWidth, m_WindowHeight);
-		}
-
-		// Load tone mapping shader
-		m_ToneMappingShader = std::make_shared<VizEngine::Shader>("resources/shaders/tonemapping.shader");
-		if (!m_ToneMappingShader->IsValid())
-		{
-			VP_ERROR("Failed to load tone mapping shader!");
-			m_HDREnabled = false;
-		}
-
-		// Create fullscreen quad
-		m_FullscreenQuad = std::make_shared<VizEngine::FullscreenQuad>();
-
-		VP_INFO("HDR pipeline initialized successfully");
-
-		// =========================================================================
-		// Post-Processing Setup (Chapter 40)
-		// =========================================================================
-		VP_INFO("Setting up post-processing...");
-
-		// Create Bloom Processor (half resolution for performance)
-		int bloomWidth = m_WindowWidth / 2;
-		int bloomHeight = m_WindowHeight / 2;
-		m_Bloom = std::make_unique<VizEngine::Bloom>(bloomWidth, bloomHeight);
-		m_Bloom->SetThreshold(m_BloomThreshold);
-		m_Bloom->SetKnee(m_BloomKnee);
-		m_Bloom->SetBlurPasses(m_BloomBlurPasses);
-
-		VP_INFO("Bloom initialized: {}x{}", bloomWidth, bloomHeight);
-
-		// Create Neutral Color Grading LUT (16x16x16)
-		m_ColorGradingLUT = VizEngine::Texture3D::CreateNeutralLUT(16);
-
-		if (!m_ColorGradingLUT)
-		{
-			VP_ERROR("Failed to create color grading LUT!");
-		}
-
-		VP_INFO("Post-processing initialized successfully");
 
 		// =========================================================================
 		// Chapter 35: Instancing Demo Setup
@@ -378,7 +233,6 @@ public:
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::LeftShift))
 			speed *= m_SprintMultiplier;
 
-		// WASD movement
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::W)) m_Camera.MoveForward(speed);
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::S)) m_Camera.MoveForward(-speed);
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::A)) m_Camera.MoveRight(-speed);
@@ -386,7 +240,6 @@ public:
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::E)) m_Camera.MoveUp(speed);
 		if (VizEngine::Input::IsKeyHeld(VizEngine::KeyCode::Q)) m_Camera.MoveUp(-speed);
 
-		// Mouse look (hold right mouse button)
 		if (VizEngine::Input::IsMouseButtonHeld(VizEngine::MouseCode::Right))
 		{
 			glm::vec2 delta = VizEngine::Input::GetMouseDelta();
@@ -396,7 +249,6 @@ public:
 			m_Camera.SetRotation(pitch, yaw);
 		}
 
-		// Scroll zoom
 		float scroll = VizEngine::Input::GetScrollDelta();
 		if (scroll != 0.0f)
 		{
@@ -405,12 +257,29 @@ public:
 		}
 
 		// =========================================================================
-		// Object Rotation (skip ground plane by name, not index)
+		// Object Rotation
 		// =========================================================================
 		for (auto& obj : m_Scene)
 		{
 			if (obj.Name == "Ground") continue;
 			obj.ObjectTransform.Rotation.y += m_RotationSpeed * deltaTime;
+		}
+
+		// =========================================================================
+		// Sync settings to SceneRenderer (in case ImGui changed them)
+		// =========================================================================
+		if (m_SceneRenderer)
+		{
+			m_SceneRenderer->SetUseIBL(m_UseIBL);
+			m_SceneRenderer->SetIBLIntensity(m_IBLIntensity);
+			m_SceneRenderer->SetShowSkybox(m_ShowSkybox);
+			m_SceneRenderer->SetClearColor(m_ClearColor);
+			m_SceneRenderer->SetLowerHemisphereColor(m_LowerHemisphereColor);
+			m_SceneRenderer->SetLowerHemisphereIntensity(m_LowerHemisphereIntensity);
+			m_SceneRenderer->SetEnableOutlines(m_EnableOutlines);
+			m_SceneRenderer->SetOutlineColor(m_OutlineColor);
+			m_SceneRenderer->SetOutlineScale(m_OutlineScale);
+			m_SceneRenderer->SetSelectedObject(m_SelectedObject);
 		}
 	}
 
@@ -420,238 +289,86 @@ public:
 		auto& renderer = engine.GetRenderer();
 
 		// =========================================================================
-		// Compute Light-Space Matrix (once per frame)
+		// Main Rendering Pipeline (Chapter 43: SceneRenderer)
 		// =========================================================================
-		m_LightSpaceMatrix = ComputeLightSpaceMatrix(m_Light);
-
-		// =========================================================================
-		// Pass 1: Render scene from light's perspective to shadow map
-		// =========================================================================
-		if (m_ShadowMapFramebuffer && m_ShadowDepthShader)
+		if (m_SceneRenderer)
 		{
-			renderer.PushViewport();  // Save current viewport
-
-			m_ShadowMapFramebuffer->Bind();
-			renderer.SetViewport(0, 0, m_ShadowMapFramebuffer->GetWidth(), m_ShadowMapFramebuffer->GetHeight());
-			renderer.ClearDepth();  // Clear depth buffer (no color attachment)
-
-			// Enable polygon offset to reduce shadow acne
-			renderer.EnablePolygonOffset(2.0f, 4.0f);
-
-			// Use shadow depth shader
-			m_ShadowDepthShader->Bind();
-			m_ShadowDepthShader->SetMatrix4fv("u_LightSpaceMatrix", m_LightSpaceMatrix);
-
-			// Render scene geometry (only need depth, no lighting)
-			// We need to set u_Model for each object since Scene::Render uses u_MVP
-			for (auto& obj : m_Scene)
-			{
-				if (!obj.Active || !obj.MeshPtr) continue;
-
-				glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
-				m_ShadowDepthShader->SetMatrix4fv("u_Model", model);
-
-				obj.MeshPtr->Bind();
-				renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *m_ShadowDepthShader);
-			}
-
-			// Disable polygon offset
-			renderer.DisablePolygonOffset();
-
-			m_ShadowMapFramebuffer->Unbind();
-
-			renderer.PopViewport();  // Restore viewport
+			m_SceneRenderer->Render(m_Scene, m_Camera, renderer);
 		}
 
 		// =========================================================================
-		// Pass 2: Render scene with PBR to HDR Framebuffer (Chapter 39)
+		// Chapter 35: Instancing Demo (rendered after post-processing)
 		// =========================================================================
-		// Validate HDR resources before rendering
-		if (m_HDREnabled && m_HDRFramebuffer && m_DefaultLitShader && m_HDRFramebuffer->IsComplete())
+		if (m_ShowInstancingDemo && m_InstancedShader && m_InstancedCubeMesh && m_InstanceVBO)
 		{
-			m_HDRFramebuffer->Bind();
-			renderer.Clear(m_ClearColor);
+			m_InstancedShader->Bind();
+			m_InstancedShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
+			m_InstancedShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
+			m_InstancedShader->SetVec3("u_ViewPos", m_Camera.GetPosition());
+			m_InstancedShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
+			m_InstancedShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
+			m_InstancedShader->SetVec3("u_ObjectColor", m_InstanceColor);
 
-			// Setup shader with all common uniforms
-			SetupDefaultLitShader();
-
-			// Render scene objects with PBR (Chapter 33: opaque first, then transparent)
-			RenderSceneObjects();
-
-			// =========================================================================
-			// Chapter 35: Instancing Demo
-			// =========================================================================
-			if (m_ShowInstancingDemo && m_InstancedShader && m_InstancedCubeMesh && m_InstanceVBO)
-			{
-				m_InstancedShader->Bind();
-				m_InstancedShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
-				m_InstancedShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
-				m_InstancedShader->SetVec3("u_ViewPos", m_Camera.GetPosition());
-				m_InstancedShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
-				m_InstancedShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
-				m_InstancedShader->SetVec3("u_ObjectColor", m_InstanceColor);
-
-				m_InstancedCubeMesh->Bind();
-				renderer.DrawInstanced(
-					m_InstancedCubeMesh->GetVertexArray(),
-					m_InstancedCubeMesh->GetIndexBuffer(),
-					*m_InstancedShader,
-					m_InstanceCount
-				);
-			}
-
-			// =========================================================================
-			// Render Skybox to HDR Buffer (before outlines so outlines draw on top)
-			// =========================================================================
-			if (m_ShowSkybox && m_Skybox)
-			{
-				m_Skybox->Render(m_Camera);
-			}
-
-			// =========================================================================
-			// Chapter 32: Stencil Outline Pass (after skybox so outline is visible)
-			// =========================================================================
-			RenderStencilOutline(renderer);
-
-			m_HDRFramebuffer->Unbind();
-		}
-		else
-		{
-			// HDR unavailable - fall back to direct LDR rendering
-			if (!m_HdrFallbackWarned)
-			{
-				VP_WARN("HDR rendering disabled, falling back to LDR path");
-				m_HdrFallbackWarned = true;
-			}
-
-			// Only proceed if m_DefaultLitShader is valid
-			if (m_DefaultLitShader)
-			{
-				// Render directly to screen without HDR
-				renderer.Clear(m_ClearColor);
-
-				// Setup shader with all common uniforms
-				SetupDefaultLitShader();
-
-				// Render scene
-				RenderSceneObjects();
-
-				// Render skybox before outlines
-				if (m_ShowSkybox && m_Skybox)
-				{
-					m_Skybox->Render(m_Camera);
-				}
-
-				RenderStencilOutline(renderer);
-			}
+			m_InstancedCubeMesh->Bind();
+			renderer.DrawInstanced(
+				m_InstancedCubeMesh->GetVertexArray(),
+				m_InstancedCubeMesh->GetIndexBuffer(),
+				*m_InstancedShader,
+				m_InstanceCount
+			);
 		}
 
 		// =========================================================================
-		// Pass 3: Bloom Processing (Chapter 40)
+		// Offscreen Preview Framebuffer (F2)
 		// =========================================================================
-		std::shared_ptr<VizEngine::Texture> bloomTexture = nullptr;
-		if (m_HDREnabled && m_EnableBloom && m_Bloom && m_HDRColorTexture)
-		{
-			// Update bloom parameters (in case they changed via ImGui)
-			m_Bloom->SetThreshold(m_BloomThreshold);
-			m_Bloom->SetKnee(m_BloomKnee);
-			m_Bloom->SetBlurPasses(m_BloomBlurPasses);
-
-			// Process HDR buffer to generate bloom
-			bloomTexture = m_Bloom->Process(m_HDRColorTexture);
-		}
-
-		// =========================================================================
-		// Pass 4: Tone Mapping + Post-Processing to Screen (Chapter 39 & 40)
-		// =========================================================================
-		// Only perform tone mapping if HDR pipeline is active
-		if (m_HDREnabled && m_ToneMappingShader && m_HDRColorTexture && m_FullscreenQuad)
-		{
-			renderer.SetViewport(0, 0, m_WindowWidth, m_WindowHeight);
-			// Don't clear here if HDR is disabled - LDR fallback already rendered
-			renderer.Clear(m_ClearColor);
-
-			// Disable depth test for fullscreen quad
-			renderer.DisableDepthTest();
-
-			// Bind tone mapping shader
-			m_ToneMappingShader->Bind();
-
-			// Bind HDR texture using standard slot
-			m_HDRColorTexture->Bind(VizEngine::TextureSlots::HDRBuffer);
-			m_ToneMappingShader->SetInt("u_HDRBuffer", VizEngine::TextureSlots::HDRBuffer);
-
-			// Set tone mapping parameters
-			m_ToneMappingShader->SetInt("u_ToneMappingMode", m_ToneMappingMode);
-			m_ToneMappingShader->SetFloat("u_Exposure", m_Exposure);
-			m_ToneMappingShader->SetFloat("u_Gamma", m_Gamma);
-			m_ToneMappingShader->SetFloat("u_WhitePoint", m_WhitePoint);
-
-			// Bloom parameters
-			m_ToneMappingShader->SetBool("u_EnableBloom", m_EnableBloom);
-			m_ToneMappingShader->SetFloat("u_BloomIntensity", m_BloomIntensity);
-			if (bloomTexture)
-			{
-				bloomTexture->Bind(VizEngine::TextureSlots::BloomTexture);
-				m_ToneMappingShader->SetInt("u_BloomTexture", VizEngine::TextureSlots::BloomTexture);
-			}
-
-			// Color grading parameters
-			m_ToneMappingShader->SetBool("u_EnableColorGrading", m_EnableColorGrading);
-			m_ToneMappingShader->SetFloat("u_LUTContribution", m_LUTContribution);
-			m_ToneMappingShader->SetFloat("u_Saturation", m_Saturation);
-			m_ToneMappingShader->SetFloat("u_Contrast", m_Contrast);
-			m_ToneMappingShader->SetFloat("u_Brightness", m_Brightness);
-
-			if (m_EnableColorGrading && m_ColorGradingLUT)
-			{
-				m_ColorGradingLUT->Bind(VizEngine::TextureSlots::ColorGradingLUT);
-				m_ToneMappingShader->SetInt("u_ColorGradingLUT", VizEngine::TextureSlots::ColorGradingLUT);
-			}
-
-			// Render fullscreen quad
-			m_FullscreenQuad->Render();
-		}
-		else if (!m_HDREnabled)
-		{
-			// HDR disabled - LDR fallback already rendered directly, no tone mapping needed
-		}
-
-		// Re-enable depth test
-		renderer.EnableDepthTest();
-
-		// =========================================================================
-		// Render to preview Framebuffer (offscreen) - kept for F2 preview
-		// =========================================================================
-		if (m_Framebuffer)
+		if (m_Framebuffer && m_ShowFramebufferTexture && m_PBRMaterial)
 		{
 			float windowAspect = static_cast<float>(m_WindowWidth) / static_cast<float>(m_WindowHeight);
-			m_Camera.SetAspectRatio(1.0f);  // Framebuffer is square (800x800)
-			
+			m_Camera.SetAspectRatio(1.0f);
+
 			m_Framebuffer->Bind();
 			renderer.SetViewport(0, 0, m_Framebuffer->GetWidth(), m_Framebuffer->GetHeight());
 			renderer.Clear(m_ClearColor);
 
-			// PBR shader already configured, just need to update camera for new aspect
-			m_DefaultLitShader->Bind();
-			m_DefaultLitShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
-			m_DefaultLitShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
+			// Set per-frame uniforms directly on shader (post-processing clobbers texture state)
+			auto shader = m_PBRMaterial->GetShader();
+			shader->Bind();
+			shader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
+			shader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
 
-			// Render scene objects with PBR
-			RenderSceneObjects();
-		
-			// Render Skybox to offscreen framebuffer
-			if (m_ShowSkybox && m_Skybox)
+			for (auto& obj : m_Scene)
 			{
-				m_Skybox->Render(m_Camera);
+				if (!obj.Active || !obj.MeshPtr) continue;
+
+				// Set PBR properties + rebind textures via material
+				m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
+				m_PBRMaterial->SetAlpha(obj.Color.a);
+				m_PBRMaterial->SetMetallic(obj.Metallic);
+				m_PBRMaterial->SetRoughness(obj.Roughness);
+				m_PBRMaterial->SetAO(1.0f);
+
+				if (obj.TexturePtr)
+					m_PBRMaterial->SetAlbedoTexture(obj.TexturePtr);
+				else
+					m_PBRMaterial->SetAlbedoTexture(nullptr);
+
+				m_PBRMaterial->Bind();
+
+				glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
+				glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
+				shader->SetMatrix4fv("u_Model", model);
+				shader->SetMatrix3fv("u_NormalMatrix", normalMatrix);
+
+				obj.MeshPtr->Bind();
+				renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *shader);
 			}
-		
+
+			if (m_ShowSkybox && m_Skybox)
+				m_Skybox->Render(m_Camera);
+
 			m_Framebuffer->Unbind();
 
-			// Restore camera to window aspect ratio
 			m_Camera.SetAspectRatio(windowAspect);
-			
-			// Restore viewport to window size
 			renderer.SetViewport(0, 0, m_WindowWidth, m_WindowHeight);
 		}
 	}
@@ -660,48 +377,42 @@ public:
 	{
 		auto& engine = VizEngine::Engine::Get();
 		auto& uiManager = engine.GetUIManager();
+		auto* postProcess = m_SceneRenderer ? m_SceneRenderer->GetPostProcess() : nullptr;
 
 		// =========================================================================
-		// Engine Stats Panel (toggle with F1)
+		// Engine Stats Panel (F1)
 		// =========================================================================
 		if (m_ShowEngineStats)
 		{
 			uiManager.StartWindow("Engine Stats");
-
 			uiManager.Text("FPS: %.1f", m_CurrentFPS);
 			uiManager.Text("Delta: %.2f ms", engine.GetDeltaTime() * 1000.0f);
 			uiManager.Text("Frame: %llu", m_FrameCount);
 			uiManager.Separator();
 			uiManager.Text("Window: %d x %d", m_WindowWidth, m_WindowHeight);
+			uiManager.Text("Render Path: %s", m_SceneRenderer ? m_SceneRenderer->GetRenderPathName() : "None");
 			uiManager.Separator();
 			uiManager.Text("Press F1 to toggle");
-
 			uiManager.EndWindow();
 		}
 
 		// =========================================================================
-		// Framebuffer Texture Preview (toggle with F2)
+		// Offscreen Preview (F2)
 		// =========================================================================
 		if (m_ShowFramebufferTexture)
 		{
 			uiManager.StartFixedWindow("Offscreen Render", 360.0f, 420.0f);
-
 			if (m_FramebufferColor && m_Framebuffer)
 			{
-				// ImGui::Image takes texture ID, size
 				unsigned int texID = m_FramebufferColor->GetID();
 				float width = static_cast<float>(m_Framebuffer->GetWidth());
 				float height = static_cast<float>(m_Framebuffer->GetHeight());
-
-				// Display with fixed size (scale down if needed)
-				float displaySize = 320.0f;  // Preview size
+				float displaySize = 320.0f;
 				float aspect = width / height;
 				uiManager.Image(
 					reinterpret_cast<void*>(static_cast<uintptr_t>(texID)),
-					displaySize,
-					displaySize / aspect
+					displaySize, displaySize / aspect
 				);
-
 				uiManager.Separator();
 				uiManager.Text("Framebuffer: %dx%d", m_Framebuffer->GetWidth(), m_Framebuffer->GetHeight());
 			}
@@ -709,43 +420,37 @@ public:
 			{
 				uiManager.Text("Framebuffer not available");
 			}
-			
 			uiManager.Checkbox("Show Preview", &m_ShowFramebufferTexture);
-
 			uiManager.EndWindow();
 		}
 
 		// =========================================================================
-		// Shadow Map Preview (toggle with F3)
+		// Shadow Map Preview (F3)
 		// =========================================================================
-		if (m_ShowShadowMap)
+		if (m_ShowShadowMap && m_SceneRenderer)
 		{
 			uiManager.StartFixedWindow("Shadow Map Debug", 360.0f, 420.0f);
-
-			if (m_ShadowMapDepth && m_ShadowMapFramebuffer)
+			auto* shadowPass = m_SceneRenderer->GetShadowPass();
+			if (shadowPass && shadowPass->IsValid())
 			{
-				unsigned int shadowTexID = m_ShadowMapDepth->GetID();
-				float displaySize = 320.0f;
-
-				uiManager.Image(
-					reinterpret_cast<void*>(static_cast<uintptr_t>(shadowTexID)),
-					displaySize,
-					displaySize
-				);
-
-				uiManager.Separator();
-				uiManager.Text("Shadow Map: %dx%d",
-					m_ShadowMapFramebuffer->GetWidth(),
-					m_ShadowMapFramebuffer->GetHeight()
-				);
+				auto shadowMap = shadowPass->GetShadowMap();
+				if (shadowMap)
+				{
+					unsigned int shadowTexID = shadowMap->GetID();
+					float displaySize = 320.0f;
+					uiManager.Image(
+						reinterpret_cast<void*>(static_cast<uintptr_t>(shadowTexID)),
+						displaySize, displaySize
+					);
+					uiManager.Separator();
+					uiManager.Text("Shadow Map: %dx%d", shadowPass->GetResolution(), shadowPass->GetResolution());
+				}
 			}
 			else
 			{
 				uiManager.Text("Shadow map not available");
 			}
-
 			uiManager.Checkbox("Show Shadow Map", &m_ShowShadowMap);
-
 			uiManager.EndWindow();
 		}
 
@@ -753,7 +458,6 @@ public:
 		// Scene Objects Panel
 		// =========================================================================
 		uiManager.StartWindow("Scene Objects");
-
 		uiManager.Text("Objects (%zu)", m_Scene.Size());
 		uiManager.Separator();
 
@@ -761,39 +465,30 @@ public:
 		{
 			bool isSelected = (m_SelectedObject == static_cast<int>(i));
 			if (uiManager.Selectable(m_Scene[i].Name.c_str(), isSelected))
-			{
 				m_SelectedObject = static_cast<int>(i);
-			}
 		}
 
 		uiManager.Separator();
 
-		// Edit selected object
 		if (m_SelectedObject >= 0 && m_SelectedObject < static_cast<int>(m_Scene.Size()))
 		{
 			auto& obj = m_Scene[static_cast<size_t>(m_SelectedObject)];
-
 			uiManager.Text("Selected: %s", obj.Name.c_str());
 			uiManager.Checkbox("Active", &obj.Active);
-
 			uiManager.Separator();
 			uiManager.Text("Transform");
 			uiManager.DragFloat3("Position", &obj.ObjectTransform.Position.x, 0.1f);
 
 			glm::vec3 rotDegrees = obj.ObjectTransform.GetRotationDegrees();
 			if (uiManager.DragFloat3("Rotation", &rotDegrees.x, 1.0f))
-			{
 				obj.ObjectTransform.SetRotationDegrees(rotDegrees);
-			}
 
 			uiManager.DragFloat3("Scale", &obj.ObjectTransform.Scale.x, 0.1f, 0.1f, 10.0f);
-
 			uiManager.Separator();
 			uiManager.Text("Material");
 			uiManager.ColorEdit4("Color", &obj.Color.x);
 			uiManager.SliderFloat("Roughness", &obj.Roughness, 0.05f, 1.0f);
 			uiManager.SliderFloat("Metallic", &obj.Metallic, 0.0f, 1.0f);
-
 			uiManager.Separator();
 			if (uiManager.Button("Delete Object"))
 			{
@@ -805,7 +500,6 @@ public:
 
 		uiManager.Separator();
 
-		// Add new objects (use monotonic counter for unique names)
 		if (uiManager.Button("Add Pyramid"))
 		{
 			auto& newObj = m_Scene.Add(m_PyramidMesh, "Pyramid_" + std::to_string(m_NextObjectID++));
@@ -840,66 +534,49 @@ public:
 			{
 				auto& newObj = m_Scene.Add(m_SphereMesh, "Sphere_" + std::to_string(m_NextObjectID++));
 				newObj.ObjectTransform.Scale = glm::vec3(1.0f);
-				newObj.Color = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);  // Red
-				newObj.Metallic = 0.5f;   // Semi-metallic for PBR demo
-				newObj.Roughness = 0.3f;  // Somewhat shiny
+				newObj.Color = glm::vec4(0.8f, 0.2f, 0.2f, 1.0f);
+				newObj.Metallic = 0.5f;
+				newObj.Roughness = 0.3f;
 			}
 		}
-
 		uiManager.EndWindow();
 
 		// =========================================================================
 		// Lighting Panel
 		// =========================================================================
 		uiManager.StartWindow("Lighting");
-
 		uiManager.Text("Directional Light");
 		uiManager.DragFloat3("Direction", &m_Light.Direction.x, 0.01f, -1.0f, 1.0f);
 		uiManager.ColorEdit3("Dir Color", &m_Light.Diffuse.x);
-
 		uiManager.Separator();
 		uiManager.Text("Point Lights (4x)");
-		
-		// Light intensity control (all lights share same intensity)
+
 		if (uiManager.SliderFloat("Intensity", &m_PBRLightIntensity, 0.0f, 1000.0f))
 		{
 			for (int i = 0; i < 4; ++i)
-			{
 				m_PBRLightColors[i] = m_PBRLightColor * m_PBRLightIntensity;
-			}
 		}
-
-		// Light color (applied to all lights)
 		if (uiManager.ColorEdit3("Point Color", &m_PBRLightColor.x))
 		{
 			for (int i = 0; i < 4; ++i)
-			{
 				m_PBRLightColors[i] = m_PBRLightColor * m_PBRLightIntensity;
-			}
 		}
-
 		uiManager.EndWindow();
 
 		// =========================================================================
 		// Scene Controls Panel
 		// =========================================================================
 		uiManager.StartWindow("Scene Controls");
-
 		uiManager.Text("Background");
 		uiManager.ColorEdit4("Clear Color", m_ClearColor);
 		uiManager.Separator();
-
 		uiManager.Text("Animation");
 		uiManager.SliderFloat("Rotation Speed", &m_RotationSpeed, 0.0f, 5.0f);
 		uiManager.Separator();
-
 		uiManager.Text("Camera");
 		glm::vec3 camPos = m_Camera.GetPosition();
 		if (uiManager.DragFloat3("Camera Pos", &camPos.x, 0.1f))
-		{
 			m_Camera.SetPosition(camPos);
-		}
-
 		uiManager.EndWindow();
 
 		// =========================================================================
@@ -907,22 +584,14 @@ public:
 		// =========================================================================
 		uiManager.StartWindow("Skybox");
 		uiManager.Checkbox("Show Skybox", &m_ShowSkybox);
-		
 		if (m_SkyboxCubemap)
-		{
-			uiManager.Text("Cubemap: %dx%d per face", 
-				m_SkyboxCubemap->GetWidth(), 
-				m_SkyboxCubemap->GetHeight());
-		}
+			uiManager.Text("Cubemap: %dx%d per face", m_SkyboxCubemap->GetWidth(), m_SkyboxCubemap->GetHeight());
 		else
-		{
 			uiManager.Text("Cubemap: Not loaded");
-		}
-
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// IBL Controls (Chapter 38)
+		// IBL Controls
 		// =========================================================================
 		uiManager.StartWindow("IBL");
 		uiManager.Checkbox("Use IBL", &m_UseIBL);
@@ -946,88 +615,113 @@ public:
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// HDR & Tone Mapping Panel (Chapter 39)
+		// HDR & Tone Mapping Panel
 		// =========================================================================
 		uiManager.StartWindow("HDR & Tone Mapping");
 
-		// Tone mapping operator selection
-		const char* toneMappingModes[] = { 
-			"Reinhard", 
-			"Reinhard Extended", 
-			"Exposure", 
-			"ACES Filmic", 
-			"Uncharted 2" 
-		};
-		uiManager.Combo("Tone Mapping", &m_ToneMappingMode, toneMappingModes, 5);
-
-		// Exposure control (for all modes except simple Reinhard)
-		if (m_ToneMappingMode != 0)
+		if (postProcess)
 		{
-			uiManager.SliderFloat("Exposure", &m_Exposure, 0.1f, 5.0f);
-			
-			// Show f-stop equivalent
-			float fStops = log2f(m_Exposure);
-			uiManager.Text("(%.2f f-stops)", fStops);
-		}
+			int toneMode = postProcess->GetToneMappingMode();
+			float exposure = postProcess->GetExposure();
+			float gamma = postProcess->GetGamma();
+			float whitePoint = postProcess->GetWhitePoint();
 
-		// White point (for Reinhard Extended)
-		if (m_ToneMappingMode == 1)
-		{
-			uiManager.SliderFloat("White Point", &m_WhitePoint, 1.0f, 20.0f);
-		}
+			const char* toneMappingModes[] = {
+				"Reinhard", "Reinhard Extended", "Exposure", "ACES Filmic", "Uncharted 2"
+			};
+			if (uiManager.Combo("Tone Mapping", &toneMode, toneMappingModes, 5))
+				postProcess->SetToneMappingMode(toneMode);
 
-		// Gamma control
-		uiManager.SliderFloat("Gamma", &m_Gamma, 1.8f, 2.6f);
+			if (toneMode != 0)
+			{
+				if (uiManager.SliderFloat("Exposure", &exposure, 0.1f, 5.0f))
+					postProcess->SetExposure(exposure);
+				float fStops = log2f(exposure);
+				uiManager.Text("(%.2f f-stops)", fStops);
+			}
+
+			if (toneMode == 1)
+			{
+				if (uiManager.SliderFloat("White Point", &whitePoint, 1.0f, 20.0f))
+					postProcess->SetWhitePoint(whitePoint);
+			}
+
+			if (uiManager.SliderFloat("Gamma", &gamma, 1.8f, 2.6f))
+				postProcess->SetGamma(gamma);
+		}
 
 		uiManager.Separator();
 
-		// Framebuffer info
-		if (m_HDRFramebuffer)
+		if (m_SceneRenderer)
 		{
-			uiManager.Text("HDR Buffer: %dx%d RGB16F", 
-			               m_HDRFramebuffer->GetWidth(), 
-			               m_HDRFramebuffer->GetHeight());
-			uiManager.Text("Memory: ~%.2f MB", 
-			               (m_HDRFramebuffer->GetWidth() * m_HDRFramebuffer->GetHeight() * 6) / (1024.0f * 1024.0f));
+			auto hdrFB = m_SceneRenderer->GetHDRFramebuffer();
+			if (hdrFB)
+			{
+				uiManager.Text("HDR Buffer: %dx%d RGB16F", hdrFB->GetWidth(), hdrFB->GetHeight());
+				uiManager.Text("Memory: ~%.2f MB",
+					(hdrFB->GetWidth() * hdrFB->GetHeight() * 6) / (1024.0f * 1024.0f));
+			}
 		}
 
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// Post-Processing Panel (Chapter 40)
+		// Post-Processing Panel
 		// =========================================================================
 		uiManager.StartWindow("Post-Processing");
 
-		// Bloom section
-		if (uiManager.CollapsingHeader("Bloom"))
+		if (postProcess)
 		{
-			uiManager.Checkbox("Enable Bloom", &m_EnableBloom);
-			uiManager.SliderFloat("Threshold", &m_BloomThreshold, 0.0f, 5.0f);
-			uiManager.SliderFloat("Knee", &m_BloomKnee, 0.0f, 1.0f);
-			uiManager.SliderFloat("Intensity", &m_BloomIntensity, 0.0f, 0.2f);
-			uiManager.SliderInt("Blur Passes", &m_BloomBlurPasses, 1, 10);
-		}
+			if (uiManager.CollapsingHeader("Bloom"))
+			{
+				bool enableBloom = postProcess->GetEnableBloom();
+				float threshold = postProcess->GetBloomThreshold();
+				float knee = postProcess->GetBloomKnee();
+				float intensity = postProcess->GetBloomIntensity();
+				int blurPasses = postProcess->GetBloomBlurPasses();
 
-		// Color Grading section
-		if (uiManager.CollapsingHeader("Color Grading"))
-		{
-			uiManager.Checkbox("Enable Color Grading", &m_EnableColorGrading);
-			uiManager.SliderFloat("LUT Contribution", &m_LUTContribution, 0.0f, 1.0f);
-			uiManager.Separator();
-			uiManager.Text("Parametric Controls");
-			uiManager.SliderFloat("Saturation", &m_Saturation, 0.0f, 2.0f);
-			uiManager.SliderFloat("Contrast", &m_Contrast, 0.5f, 2.0f);
-			uiManager.SliderFloat("Brightness", &m_Brightness, -0.5f, 0.5f);
+				if (uiManager.Checkbox("Enable Bloom", &enableBloom))
+					postProcess->SetEnableBloom(enableBloom);
+				if (uiManager.SliderFloat("Threshold", &threshold, 0.0f, 5.0f))
+					postProcess->SetBloomThreshold(threshold);
+				if (uiManager.SliderFloat("Knee", &knee, 0.0f, 1.0f))
+					postProcess->SetBloomKnee(knee);
+				if (uiManager.SliderFloat("Intensity", &intensity, 0.0f, 0.2f))
+					postProcess->SetBloomIntensity(intensity);
+				if (uiManager.SliderInt("Blur Passes", &blurPasses, 1, 10))
+					postProcess->SetBloomBlurPasses(blurPasses);
+			}
+
+			if (uiManager.CollapsingHeader("Color Grading"))
+			{
+				bool enableCG = postProcess->GetEnableColorGrading();
+				float lutContrib = postProcess->GetLUTContribution();
+				float saturation = postProcess->GetSaturation();
+				float contrast = postProcess->GetContrast();
+				float brightness = postProcess->GetBrightness();
+
+				if (uiManager.Checkbox("Enable Color Grading", &enableCG))
+					postProcess->SetEnableColorGrading(enableCG);
+				if (uiManager.SliderFloat("LUT Contribution", &lutContrib, 0.0f, 1.0f))
+					postProcess->SetLUTContribution(lutContrib);
+				uiManager.Separator();
+				uiManager.Text("Parametric Controls");
+				if (uiManager.SliderFloat("Saturation", &saturation, 0.0f, 2.0f))
+					postProcess->SetSaturation(saturation);
+				if (uiManager.SliderFloat("Contrast", &contrast, 0.5f, 2.0f))
+					postProcess->SetContrast(contrast);
+				if (uiManager.SliderFloat("Brightness", &brightness, -0.5f, 0.5f))
+					postProcess->SetBrightness(brightness);
+			}
 		}
 
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// Part X: OpenGL Essentials Panel (Chapters 32-35)
+		// OpenGL Essentials Panel (Chapters 32-35)
 		// =========================================================================
 		uiManager.StartWindow("OpenGL Essentials");
 
-		// Chapter 32: Stencil Outlines
 		if (uiManager.CollapsingHeader("Stencil Outlines (Ch 32)"))
 		{
 			uiManager.Checkbox("Enable Outlines", &m_EnableOutlines);
@@ -1040,14 +734,12 @@ public:
 			uiManager.Text("Toggle: F5");
 		}
 
-		// Chapter 33: Transparency
 		if (uiManager.CollapsingHeader("Transparency (Ch 33)"))
 		{
 			uiManager.Text("Set alpha < 1.0 via Color editor above.");
 			uiManager.Text("Transparent objects are sorted back-to-front.");
 		}
 
-		// Chapter 35: Instancing
 		if (uiManager.CollapsingHeader("Instancing (Ch 35)"))
 		{
 			uiManager.Checkbox("Show Instancing Demo", &m_ShowInstancingDemo);
@@ -1060,13 +752,20 @@ public:
 		}
 
 		uiManager.EndWindow();
+
+		// =========================================================================
+		// Render Path Debug (Chapter 43)
+		// =========================================================================
+		if (m_SceneRenderer)
+		{
+			m_SceneRenderer->OnImGuiDebug();
+		}
 	}
 
 	void OnEvent(VizEngine::Event& e) override
 	{
 		VizEngine::EventDispatcher dispatcher(e);
 
-		// Handle window resize - update camera and track dimensions
 		dispatcher.Dispatch<VizEngine::WindowResizeEvent>(
 			[this](VizEngine::WindowResizeEvent& event) {
 				m_WindowWidth = event.GetWidth();
@@ -1074,146 +773,48 @@ public:
 
 				if (m_WindowWidth > 0 && m_WindowHeight > 0)
 				{
-					float aspect = static_cast<float>(m_WindowWidth)
-					             / static_cast<float>(m_WindowHeight);
+					float aspect = static_cast<float>(m_WindowWidth) / static_cast<float>(m_WindowHeight);
 					m_Camera.SetAspectRatio(aspect);
 
-					// Recreate HDR framebuffer with new dimensions (Chapter 39)
-					if (m_HDRFramebuffer)
-					{
-						VP_INFO("Recreating HDR framebuffer: {}x{}", m_WindowWidth, m_WindowHeight);
-
-						// Preserve old resources in case new creation fails
-						auto oldFramebuffer = m_HDRFramebuffer;
-						auto oldColorTexture = m_HDRColorTexture;
-						auto oldDepthTexture = m_HDRDepthTexture;
-
-						// Attempt to create new resources
-						auto newColorTexture = std::make_shared<VizEngine::Texture>(
-							m_WindowWidth, m_WindowHeight, GL_RGB16F, GL_RGB, GL_FLOAT
-						);
-						auto newDepthTexture = std::make_shared<VizEngine::Texture>(
-							m_WindowWidth, m_WindowHeight, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8
-						);
-
-						auto newFramebuffer = std::make_shared<VizEngine::Framebuffer>(m_WindowWidth, m_WindowHeight);
-						newFramebuffer->AttachColorTexture(newColorTexture, 0);
-						newFramebuffer->AttachDepthStencilTexture(newDepthTexture);
-
-						// Validate new framebuffer
-						if (!newFramebuffer->IsComplete())
-						{
-							VP_ERROR("HDR Framebuffer incomplete after resize! Restoring previous framebuffer and disabling HDR.");
-							
-							// Restore old resources (they remain valid)
-							m_HDRFramebuffer = oldFramebuffer;
-							m_HDRColorTexture = oldColorTexture;
-							m_HDRDepthTexture = oldDepthTexture;
-							
-							// Disable HDR rendering to prevent crashes
-							m_HDREnabled = false;
-						}
-						else
-						{
-							// Success - validate tone-mapping resources before enabling HDR
-							const bool hdrResourcesOk =
-								m_ToneMappingShader && m_ToneMappingShader->IsValid() && m_FullscreenQuad;
-
-							if (hdrResourcesOk)
-							{
-								// Swap in new resources
-								m_HDRFramebuffer = newFramebuffer;
-								m_HDRColorTexture = newColorTexture;
-								m_HDRDepthTexture = newDepthTexture;
-								m_HDREnabled = true;
-							}
-							else
-							{
-								VP_WARN("HDR framebuffer resized, but tone-mapping resources are missing; keeping HDR disabled.");
-								m_HDREnabled = false;
-							}
-						}
-					}
-
-					// Recreate Bloom processor with new dimensions (Chapter 40)
-					if (m_Bloom)
-					{
-						VP_INFO("Recreating Bloom processor: {}x{}", m_WindowWidth / 2, m_WindowHeight / 2);
-						
-						// Preserve old bloom processor and settings
-						auto oldBloom = std::move(m_Bloom);
-						
-						try
-						{
-							// Attempt to create new bloom processor
-							auto newBloom = std::make_unique<VizEngine::Bloom>(m_WindowWidth / 2, m_WindowHeight / 2);
-							
-							if (newBloom)
-							{
-								// Copy settings from old bloom to new
-								newBloom->SetThreshold(m_BloomThreshold);
-								newBloom->SetKnee(m_BloomKnee);
-								newBloom->SetBlurPasses(m_BloomBlurPasses);
-								
-								// Success - swap in new bloom processor
-								m_Bloom = std::move(newBloom);
-							}
-							else
-							{
-								// Failed to create - restore old bloom
-								VP_ERROR("Failed to create new Bloom processor, keeping previous instance");
-								m_Bloom = std::move(oldBloom);
-							}
-						}
-						catch (const std::exception& e)
-						{
-							// Exception during creation - restore old bloom
-							VP_ERROR("Exception while recreating Bloom processor: {}", e.what());
-							VP_ERROR("Keeping previous Bloom instance");
-							m_Bloom = std::move(oldBloom);
-						}
-					}
+					// Delegate resize to SceneRenderer
+					if (m_SceneRenderer)
+						m_SceneRenderer->OnResize(m_WindowWidth, m_WindowHeight);
 				}
-				return false;  // Don't consume, allow propagation
+				return false;
 			}
 		);
 
-		// F1 toggles Engine Stats panel
 		dispatcher.Dispatch<VizEngine::KeyPressedEvent>(
 			[this](VizEngine::KeyPressedEvent& event) {
 				if (event.GetKeyCode() == VizEngine::KeyCode::F1 && !event.IsRepeat())
 				{
 					m_ShowEngineStats = !m_ShowEngineStats;
 					VP_INFO("Engine Stats: {}", m_ShowEngineStats ? "ON" : "OFF");
-					return true;  // Consumed
+					return true;
 				}
-				// F2 toggles Framebuffer Preview
 				if (event.GetKeyCode() == VizEngine::KeyCode::F2 && !event.IsRepeat())
 				{
 					m_ShowFramebufferTexture = !m_ShowFramebufferTexture;
 					VP_INFO("Framebuffer Preview: {}", m_ShowFramebufferTexture ? "ON" : "OFF");
-					return true;  // Consumed
+					return true;
 				}
-				// F3 toggles Shadow Map Preview
 				if (event.GetKeyCode() == VizEngine::KeyCode::F3 && !event.IsRepeat())
 				{
 					m_ShowShadowMap = !m_ShowShadowMap;
 					VP_INFO("Shadow Map Preview: {}", m_ShowShadowMap ? "ON" : "OFF");
-					return true;  // Consumed
+					return true;
 				}
-				// F4 toggles Skybox
 				if (event.GetKeyCode() == VizEngine::KeyCode::F4 && !event.IsRepeat())
 				{
 					m_ShowSkybox = !m_ShowSkybox;
 					VP_INFO("Skybox: {}", m_ShowSkybox ? "ON" : "OFF");
-					return true;  // Consumed
+					return true;
 				}
-				// F5 toggles Stencil Outlines (Chapter 32)
 				if (event.GetKeyCode() == VizEngine::KeyCode::F5 && !event.IsRepeat())
 				{
 					m_EnableOutlines = !m_EnableOutlines;
 					VP_INFO("Stencil Outlines: {}", m_EnableOutlines ? "ON" : "OFF");
-					return true;  // Consumed
+					return true;
 				}
 				return false;
 			}
@@ -1222,259 +823,17 @@ public:
 
 	void OnDestroy() override
 	{
-		// All resources now use RAII and clean themselves up automatically
-		// (Texture3D, PBRMaterial, etc.)
+		// RAII handles cleanup
 	}
 
 private:
-	// =========================================================================
-	// Helper: Compute Light-Space Matrix for Shadow Mapping
-	// =========================================================================
-	glm::mat4 ComputeLightSpaceMatrix(const VizEngine::DirectionalLight& light)
-	{
-		// Step 1: Create view matrix looking from light toward scene
-		glm::vec3 lightDir = light.GetDirection();  // Normalized direction
-
-		// Position light "behind" the scene (directional lights are infinitely far)
-		glm::vec3 lightPos = -lightDir * 15.0f;
-
-		// Handle degenerate up vector (when light direction is vertical)
-		glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-		if (glm::abs(glm::dot(lightDir, up)) > 0.999f)
-		{
-			up = glm::vec3(0.0f, 0.0f, 1.0f);
-		}
-
-		glm::mat4 lightView = glm::lookAt(
-			lightPos,                      // Light position (behind scene)
-			glm::vec3(0.0f, 0.0f, 0.0f),  // Look at origin (scene center)
-			up                            // Up vector
-		);
-
-		// Step 2: Create orthographic projection
-		// Coverage determines how much of the scene gets shadows
-		float orthoSize = 15.0f;  // Adjust based on scene size
-
-		glm::mat4 lightProjection = glm::ortho(
-			-orthoSize, orthoSize,   // Left, right
-			-orthoSize, orthoSize,   // Bottom, top
-			0.1f, 30.0f              // Near, far planes
-		);
-
-		// Step 3: Combine into light-space matrix
-		return lightProjection * lightView;
-	}
-
-	// =========================================================================
-	// Helper: Render all scene objects with PBR materials
-	// =========================================================================
-	void RenderSceneObjects()
-	{
-		auto& renderer = VizEngine::Engine::Get().GetRenderer();
-
-		if (!m_PBRMaterial) return;
-
-		// Chapter 33: Separate opaque and transparent objects
-		std::vector<size_t> opaqueIndices;
-		std::vector<size_t> transparentIndices;
-
-		for (size_t i = 0; i < m_Scene.Size(); i++)
-		{
-			auto& obj = m_Scene[i];
-			if (!obj.Active || !obj.MeshPtr) continue;
-
-			if (obj.Color.a < 1.0f)
-				transparentIndices.push_back(i);
-			else
-				opaqueIndices.push_back(i);
-		}
-
-		// Render opaque objects first
-		for (size_t idx : opaqueIndices)
-		{
-			RenderSingleObject(m_Scene[idx], renderer);
-		}
-
-		// Sort transparent objects back-to-front (Chapter 33)
-		if (!transparentIndices.empty())
-		{
-			glm::vec3 camPos = m_Camera.GetPosition();
-			std::sort(transparentIndices.begin(), transparentIndices.end(),
-				[this, &camPos](size_t a, size_t b) {
-					float distA = glm::length(m_Scene[a].ObjectTransform.Position - camPos);
-					float distB = glm::length(m_Scene[b].ObjectTransform.Position - camPos);
-					return distA > distB;  // Far objects first
-				});
-
-			// Enable blending for transparent objects
-			renderer.EnableBlending();
-			renderer.SetBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			renderer.SetDepthMask(false);  // Don't write to depth buffer
-
-			for (size_t idx : transparentIndices)
-			{
-				RenderSingleObject(m_Scene[idx], renderer);
-			}
-
-			// Restore state
-			renderer.SetDepthMask(true);
-			renderer.DisableBlending();
-		}
-	}
-
-	// Helper: Render a single scene object with PBR material
-	void RenderSingleObject(VizEngine::SceneObject& obj, VizEngine::Renderer& renderer)
-	{
-		glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
-		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
-
-		// Use Material System (Chapter 42)
-		m_PBRMaterial->SetModelMatrix(model);
-		m_PBRMaterial->SetNormalMatrix(normalMatrix);
-		m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
-		m_PBRMaterial->SetAlpha(obj.Color.a);  // Chapter 33: alpha transparency
-		m_PBRMaterial->SetMetallic(obj.Metallic);
-		m_PBRMaterial->SetRoughness(obj.Roughness);
-		m_PBRMaterial->SetAO(1.0f);
-
-		// Handle texture
-		if (obj.TexturePtr)
-		{
-			m_PBRMaterial->SetAlbedoTexture(obj.TexturePtr);
-		}
-		else
-		{
-			m_PBRMaterial->SetAlbedoTexture(nullptr);
-		}
-
-		// Bind material (uploads all uniforms)
-		m_PBRMaterial->Bind();
-
-		obj.MeshPtr->Bind();
-		renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(),
-		              *m_PBRMaterial->GetShader());
-	}
-
-	// =========================================================================
-	// Helper: Setup default lit shader with common uniforms
-	// =========================================================================
-	void SetupDefaultLitShader()
-	{
-		if (!m_PBRMaterial) return;
-
-		// Set camera matrices on material
-		m_PBRMaterial->SetViewMatrix(m_Camera.GetViewMatrix());
-		m_PBRMaterial->SetProjectionMatrix(m_Camera.GetProjectionMatrix());
-		m_PBRMaterial->SetViewPosition(m_Camera.GetPosition());
-
-		// Configure lights via shader (material doesn't have light setters yet)
-		auto shader = m_PBRMaterial->GetShader();
-		shader->Bind();
-
-		shader->SetInt("u_LightCount", 4);
-		for (int i = 0; i < 4; ++i)
-		{
-			shader->SetVec3("u_LightPositions[" + std::to_string(i) + "]", m_PBRLightPositions[i]);
-			shader->SetVec3("u_LightColors[" + std::to_string(i) + "]", m_PBRLightColors[i]);
-		}
-
-		// Directional light
-		shader->SetBool("u_UseDirLight", true);
-		shader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
-		shader->SetVec3("u_DirLightColor", m_Light.Diffuse);
-
-		// Shadow mapping (only enable if shadow map resource is valid)
-		if (m_ShadowMapDepth)
-		{
-			m_PBRMaterial->SetLightSpaceMatrix(m_LightSpaceMatrix);
-			m_PBRMaterial->SetShadowMap(m_ShadowMapDepth);
-			m_PBRMaterial->SetUseShadows(true);
-		}
-		else
-		{
-			m_PBRMaterial->SetShadowMap(nullptr);
-			m_PBRMaterial->SetUseShadows(false);
-		}
-
-		// IBL (only enable if all IBL resources are valid)
-		const bool iblResourcesValid = m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut;
-		m_PBRMaterial->SetUseIBL(iblResourcesValid);
-		if (iblResourcesValid)
-		{
-			m_PBRMaterial->SetIrradianceMap(m_IrradianceMap);
-			m_PBRMaterial->SetPrefilteredMap(m_PrefilteredMap);
-			m_PBRMaterial->SetBRDFLUT(m_BRDFLut);
-			shader->SetFloat("u_MaxReflectionLOD", 4.0f);
-			shader->SetFloat("u_IBLIntensity", m_IBLIntensity);
-		}
-		else
-		{
-			shader->SetFloat("u_IBLIntensity", 0.0f);
-		}
-
-		// Lower hemisphere fallback (prevents black reflections on flat surfaces)
-		m_PBRMaterial->SetLowerHemisphereColor(m_LowerHemisphereColor);
-		m_PBRMaterial->SetLowerHemisphereIntensity(m_LowerHemisphereIntensity);
-	}
-
-	// =========================================================================
-	// Helper: Chapter 32 — Render stencil outline around selected object
-	// =========================================================================
-	void RenderStencilOutline(VizEngine::Renderer& renderer)
-	{
-		if (!m_EnableOutlines || !m_OutlineShader) return;
-		if (m_SelectedObject < 0 || m_SelectedObject >= static_cast<int>(m_Scene.Size())) return;
-
-		auto& obj = m_Scene[static_cast<size_t>(m_SelectedObject)];
-		if (!obj.Active || !obj.MeshPtr) return;
-
-		// Pass 1: Fill stencil buffer with 1s where the selected object is
-		renderer.ClearStencil();
-		renderer.EnableStencilTest();
-		renderer.SetStencilFunc(GL_ALWAYS, 1, 0xFF);
-		renderer.SetStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-		renderer.SetStencilMask(0xFF);
-		renderer.SetDepthFunc(GL_LEQUAL);  // Allow re-rendering at same depth
-
-		// Re-render selected object (writes 1s to stencil where visible)
-		RenderSingleObject(obj, renderer);
-
-		renderer.SetDepthFunc(GL_LESS);  // Restore
-
-		// Pass 2: Render scaled-up outline where stencil != 1
-		renderer.SetStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-		renderer.SetStencilMask(0x00);     // Don't write to stencil
-		renderer.SetDepthMask(false);      // Don't write to depth
-
-		m_OutlineShader->Bind();
-		m_OutlineShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
-		m_OutlineShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
-		m_OutlineShader->SetVec4("u_OutlineColor", m_OutlineColor);
-
-		glm::mat4 scaledModel = glm::scale(
-			obj.ObjectTransform.GetModelMatrix(),
-			glm::vec3(m_OutlineScale)
-		);
-		m_OutlineShader->SetMatrix4fv("u_Model", scaledModel);
-
-		obj.MeshPtr->Bind();
-		renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *m_OutlineShader);
-
-		// Restore state
-		renderer.SetDepthMask(true);
-		renderer.SetStencilMask(0xFF);
-		renderer.DisableStencilTest();
-	}
-
 	// =========================================================================
 	// Helper: Chapter 35 — Setup instancing demo
 	// =========================================================================
 	void SetupInstancingDemo()
 	{
-		// Create a dedicated cube mesh for instancing (separate VAO from scene cubes)
 		m_InstancedCubeMesh = std::shared_ptr<VizEngine::Mesh>(VizEngine::Mesh::CreateCube().release());
 
-		// Generate a grid of instance transforms
 		const int gridSize = 10;
 		m_InstanceCount = gridSize * gridSize;
 		std::vector<glm::mat4> instanceMatrices(m_InstanceCount);
@@ -1489,32 +848,32 @@ private:
 			{
 				glm::mat4 model = glm::mat4(1.0f);
 				model = glm::translate(model, glm::vec3(
-					x * spacing - offset,
-					5.0f,   // Elevated above scene
-					z * spacing - offset
+					x * spacing - offset, 5.0f, z * spacing - offset
 				));
 				instanceMatrices[index++] = model;
 			}
 		}
 
-		// Create instance VBO with transform data
 		m_InstanceVBO = std::make_unique<VizEngine::VertexBuffer>(
 			instanceMatrices.data(),
 			static_cast<unsigned int>(m_InstanceCount * sizeof(glm::mat4))
 		);
 
-		// Setup instance attributes on the dedicated cube mesh's VAO
-		// mat4 = 4 x vec4 (locations 6, 7, 8, 9)
 		VizEngine::VertexBufferLayout instanceLayout;
-		instanceLayout.Push<float>(4);  // Column 0 (location 6)
-		instanceLayout.Push<float>(4);  // Column 1 (location 7)
-		instanceLayout.Push<float>(4);  // Column 2 (location 8)
-		instanceLayout.Push<float>(4);  // Column 3 (location 9)
+		instanceLayout.Push<float>(4);
+		instanceLayout.Push<float>(4);
+		instanceLayout.Push<float>(4);
+		instanceLayout.Push<float>(4);
 
 		m_InstancedCubeMesh->GetVertexArray().LinkInstanceBuffer(*m_InstanceVBO, instanceLayout, 6);
 
 		VP_INFO("Instancing demo ready: {} instances ({}x{} grid)", m_InstanceCount, gridSize, gridSize);
 	}
+
+	// =========================================================================
+	// Scene Renderer (Chapter 43)
+	// =========================================================================
+	std::unique_ptr<VizEngine::SceneRenderer> m_SceneRenderer;
 
 	// Scene
 	VizEngine::Scene m_Scene;
@@ -1522,11 +881,13 @@ private:
 	VizEngine::DirectionalLight m_Light;
 
 	// Assets
-	std::unique_ptr<VizEngine::Shader> m_ShadowDepthShader;
+	std::shared_ptr<VizEngine::Shader> m_DefaultLitShader;
+	std::shared_ptr<VizEngine::PBRMaterial> m_PBRMaterial;
 	std::shared_ptr<VizEngine::Texture> m_DefaultTexture;
 	std::shared_ptr<VizEngine::Mesh> m_PyramidMesh;
 	std::shared_ptr<VizEngine::Mesh> m_CubeMesh;
 	std::shared_ptr<VizEngine::Mesh> m_PlaneMesh;
+	std::shared_ptr<VizEngine::Mesh> m_SphereMesh;
 
 	// Duck model assets (for spawning)
 	std::shared_ptr<VizEngine::Mesh> m_DuckMesh;
@@ -1534,25 +895,49 @@ private:
 	glm::vec4 m_DuckColor = glm::vec4(1.0f);
 	float m_DuckRoughness = 0.5f;
 
-	// Framebuffer for offscreen rendering
+	// Skybox
+	std::shared_ptr<VizEngine::Texture> m_SkyboxCubemap;
+	std::unique_ptr<VizEngine::Skybox> m_Skybox;
+
+	// IBL
+	std::shared_ptr<VizEngine::Texture> m_IrradianceMap;
+	std::shared_ptr<VizEngine::Texture> m_PrefilteredMap;
+	std::shared_ptr<VizEngine::Texture> m_BRDFLut;
+	bool m_UseIBL = true;
+	float m_IBLIntensity = 0.3f;
+
+	// Lower hemisphere fallback
+	glm::vec3 m_LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);
+	float m_LowerHemisphereIntensity = 0.5f;
+
+	// Offscreen preview framebuffer (F2)
 	std::shared_ptr<VizEngine::Framebuffer> m_Framebuffer;
 	std::shared_ptr<VizEngine::Texture> m_FramebufferColor;
 	std::shared_ptr<VizEngine::Texture> m_FramebufferDepth;
 	bool m_ShowFramebufferTexture = true;
 
-	// Shadow mapping
-	std::shared_ptr<VizEngine::Framebuffer> m_ShadowMapFramebuffer;
-	std::shared_ptr<VizEngine::Texture> m_ShadowMapDepth;
-	glm::mat4 m_LightSpaceMatrix;
-	bool m_ShowShadowMap = false;
+	// Lights
+	glm::vec3 m_PBRLightPositions[4] = {
+		glm::vec3(-10.0f,  10.0f, 10.0f),
+		glm::vec3( 10.0f,  10.0f, 10.0f),
+		glm::vec3(-10.0f, -10.0f, 10.0f),
+		glm::vec3( 10.0f, -10.0f, 10.0f)
+	};
+	glm::vec3 m_PBRLightColors[4] = {
+		glm::vec3(30.0f), glm::vec3(30.0f), glm::vec3(30.0f), glm::vec3(30.0f)
+	};
+	float m_PBRLightIntensity = 30.0f;
+	glm::vec3 m_PBRLightColor = glm::vec3(1.0f);
 
 	// Runtime state
 	float m_ClearColor[4] = { 0.1f, 0.1f, 0.15f, 1.0f };
 	float m_RotationSpeed = 0.5f;
 	int m_SelectedObject = 0;
-	uint32_t m_NextObjectID = 1;  // Monotonic counter for unique object names
+	uint32_t m_NextObjectID = 1;
+	bool m_ShowSkybox = true;
+	bool m_ShowShadowMap = false;
 
-	// Camera controller settings
+	// Camera controller
 	float m_MoveSpeed = 5.0f;
 	float m_SprintMultiplier = 2.5f;
 	float m_LookSensitivity = 0.003f;
@@ -1565,90 +950,18 @@ private:
 	int m_WindowWidth = 800;
 	int m_WindowHeight = 800;
 
-	// Skybox
-	std::shared_ptr<VizEngine::Texture> m_EnvironmentHDRI;
-	std::shared_ptr<VizEngine::Texture> m_SkyboxCubemap;
-	std::unique_ptr<VizEngine::Skybox> m_Skybox;
-	bool m_ShowSkybox = true;
-
-	// IBL (Chapter 38)
-	std::shared_ptr<VizEngine::Texture> m_IrradianceMap;
-	std::shared_ptr<VizEngine::Texture> m_PrefilteredMap;
-	std::shared_ptr<VizEngine::Texture> m_BRDFLut;
-	bool m_UseIBL = true;
-	float m_IBLIntensity = 0.3f;  // Lower default to balance direct vs ambient lighting
-
-	// Lower hemisphere fallback (prevents black reflections on flat surfaces)
-	glm::vec3 m_LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);  // Slightly blue-ish ground
-	float m_LowerHemisphereIntensity = 0.5f;
-
-	// PBR Rendering (Chapter 37)
-	std::shared_ptr<VizEngine::Shader> m_DefaultLitShader;
-	std::shared_ptr<VizEngine::PBRMaterial> m_PBRMaterial;
-	std::shared_ptr<VizEngine::Mesh> m_SphereMesh;
-	glm::vec3 m_PBRLightPositions[4] = {
-		glm::vec3(-10.0f,  10.0f, 10.0f),
-		glm::vec3( 10.0f,  10.0f, 10.0f),
-		glm::vec3(-10.0f, -10.0f, 10.0f),
-		glm::vec3( 10.0f, -10.0f, 10.0f)
-	};
-	glm::vec3 m_PBRLightColors[4] = {
-		glm::vec3(30.0f, 30.0f, 30.0f),
-		glm::vec3(30.0f, 30.0f, 30.0f),
-		glm::vec3(30.0f, 30.0f, 30.0f),
-		glm::vec3(30.0f, 30.0f, 30.0f)
-	};
-	float m_PBRLightIntensity = 30.0f;
-	glm::vec3 m_PBRLightColor = glm::vec3(1.0f);  // White light
-
-	// HDR Pipeline (Chapter 39)
-	std::shared_ptr<VizEngine::Framebuffer> m_HDRFramebuffer;
-	std::shared_ptr<VizEngine::Texture> m_HDRColorTexture;
-	std::shared_ptr<VizEngine::Texture> m_HDRDepthTexture;
-	std::shared_ptr<VizEngine::Shader> m_ToneMappingShader;
-	std::shared_ptr<VizEngine::FullscreenQuad> m_FullscreenQuad;
-
-	// HDR Settings
-	int m_ToneMappingMode = 3;      // 0=Reinhard, 1=ReinhardExt, 2=Exposure, 3=ACES, 4=Uncharted2
-	float m_Exposure = 1.0f;
-	float m_Gamma = 2.2f;
-	float m_WhitePoint = 4.0f;      // For Reinhard Extended
-	bool m_HDREnabled = true;       // Tracks HDR pipeline availability
-	bool m_HdrFallbackWarned = false;  // One-time warning flag for HDR fallback
-
-	// Post-Processing (Chapter 40)
-	std::unique_ptr<VizEngine::Bloom> m_Bloom;
-	bool m_EnableBloom = true;
-	float m_BloomThreshold = 1.5f;
-	float m_BloomKnee = 0.5f;
-	float m_BloomIntensity = 0.04f;
-	int m_BloomBlurPasses = 5;
-
-	// Color Grading (Chapter 41)
-	std::unique_ptr<VizEngine::Texture3D> m_ColorGradingLUT;
-	bool m_EnableColorGrading = false;
-	float m_LUTContribution = 1.0f;
-	float m_Saturation = 1.0f;
-	float m_Contrast = 1.0f;
-	float m_Brightness = 0.0f;
-
-	// =========================================================================
-	// Part X: OpenGL Essentials (Chapters 32-35)
-	// =========================================================================
-
-	// Chapter 32: Stencil Outlines
-	std::shared_ptr<VizEngine::Shader> m_OutlineShader;
+	// Stencil outlines
 	bool m_EnableOutlines = true;
-	glm::vec4 m_OutlineColor = glm::vec4(1.0f, 0.6f, 0.0f, 1.0f);  // Orange
+	glm::vec4 m_OutlineColor = glm::vec4(1.0f, 0.6f, 0.0f, 1.0f);
 	float m_OutlineScale = 1.05f;
 
-	// Chapter 35: Instancing
+	// Instancing demo
 	std::shared_ptr<VizEngine::Shader> m_InstancedShader;
 	std::shared_ptr<VizEngine::Mesh> m_InstancedCubeMesh;
 	std::unique_ptr<VizEngine::VertexBuffer> m_InstanceVBO;
 	int m_InstanceCount = 0;
 	bool m_ShowInstancingDemo = false;
-	glm::vec3 m_InstanceColor = glm::vec3(0.4f, 0.7f, 0.9f);  // Light blue
+	glm::vec3 m_InstanceColor = glm::vec3(0.4f, 0.7f, 0.9f);
 };
 
 std::unique_ptr<VizEngine::Application> VizEngine::CreateApplication(VizEngine::EngineConfig& config)
@@ -1658,4 +971,3 @@ std::unique_ptr<VizEngine::Application> VizEngine::CreateApplication(VizEngine::
 	config.Height = 800;
 	return std::make_unique<Sandbox>();
 }
-
