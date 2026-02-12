@@ -30,12 +30,12 @@ uniform float u_Exposure;       // For exposure-based and manual control
 uniform float u_Gamma;          // Typically 2.2
 uniform float u_WhitePoint;     // For Reinhard Extended
 
-// Bloom (Chapter 36)
+// Bloom (Chapter 40)
 uniform sampler2D u_BloomTexture;
 uniform float u_BloomIntensity;
 uniform bool u_EnableBloom;
 
-// Color Grading (Chapter 36)
+// Color Grading (Chapter 41)
 uniform sampler3D u_ColorGradingLUT;
 uniform bool u_EnableColorGrading;
 uniform float u_LUTContribution;  // Blend factor (0=off, 1=full)
