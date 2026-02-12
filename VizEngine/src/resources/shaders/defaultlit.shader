@@ -99,7 +99,7 @@ uniform bool u_UseDirLight;         // Enable directional light
 uniform sampler2D u_ShadowMap;
 
 // ============================================================================
-// Image-Based Lighting (Chapter 34)
+// Image-Based Lighting (Chapter 38)
 // ============================================================================
 uniform samplerCube u_IrradianceMap;
 uniform samplerCube u_PrefilteredMap;
@@ -460,14 +460,14 @@ void main()
     }
     else
     {
-        // Fallback to simple ambient (Chapter 33 style)
+        // Fallback to simple ambient (Chapter 37 style)
         ambient = vec3(0.03) * albedo * u_AO;
     }
     
     vec3 color = ambient + Lo;
     
     // ========================================================================
-    // Output HDR Color (Chapter 35: Tone mapping moved to separate pass)
+    // Output HDR Color (Chapter 39: Tone mapping moved to separate pass)
     // ========================================================================
 
     // Output raw linear HDR values (no tone mapping, no gamma correction)

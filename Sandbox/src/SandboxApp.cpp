@@ -219,7 +219,7 @@ public:
 		VP_INFO("Skybox ready!");
 
 		// =========================================================================
-		// Generate IBL Maps (Chapter 34)
+		// Generate IBL Maps (Chapter 38)
 		// =========================================================================
 		auto iblStart = std::chrono::high_resolution_clock::now();
 
@@ -252,7 +252,7 @@ public:
 		}
 
 		// =========================================================================
-		// PBR Rendering Setup (Chapter 33)
+		// PBR Rendering Setup (Chapter 37)
 		// =========================================================================
 		m_DefaultLitShader = std::make_shared<VizEngine::Shader>("resources/shaders/defaultlit.shader");
 		if (!m_DefaultLitShader->IsValid())
@@ -261,7 +261,7 @@ public:
 			return;
 		}
 
-		// Initialize PBR Material (Chapter 38 - Material System)
+		// Initialize PBR Material (Chapter 42 - Material System)
 		m_PBRMaterial = std::make_shared<VizEngine::PBRMaterial>(m_DefaultLitShader, "Scene PBR Material");
 
 		// Setup IBL maps on material if available
@@ -277,7 +277,7 @@ public:
 		VP_INFO("PBR rendering initialized");
 
 		// =========================================================================
-		// HDR Pipeline Setup (Chapter 35)
+		// HDR Pipeline Setup (Chapter 39)
 		// =========================================================================
 		VP_INFO("Setting up HDR pipeline...");
 
@@ -328,7 +328,7 @@ public:
 		VP_INFO("HDR pipeline initialized successfully");
 
 		// =========================================================================
-		// Post-Processing Setup (Chapter 36)
+		// Post-Processing Setup (Chapter 40)
 		// =========================================================================
 		VP_INFO("Setting up post-processing...");
 
@@ -464,7 +464,7 @@ public:
 		}
 
 		// =========================================================================
-		// Pass 2: Render scene with PBR to HDR Framebuffer (Chapter 35)
+		// Pass 2: Render scene with PBR to HDR Framebuffer (Chapter 39)
 		// =========================================================================
 		// Validate HDR resources before rendering
 		if (m_HDREnabled && m_HDRFramebuffer && m_DefaultLitShader && m_HDRFramebuffer->IsComplete())
@@ -547,7 +547,7 @@ public:
 		}
 
 		// =========================================================================
-		// Pass 3: Bloom Processing (Chapter 36)
+		// Pass 3: Bloom Processing (Chapter 40)
 		// =========================================================================
 		std::shared_ptr<VizEngine::Texture> bloomTexture = nullptr;
 		if (m_HDREnabled && m_EnableBloom && m_Bloom && m_HDRColorTexture)
@@ -562,7 +562,7 @@ public:
 		}
 
 		// =========================================================================
-		// Pass 4: Tone Mapping + Post-Processing to Screen (Chapter 35 & 36)
+		// Pass 4: Tone Mapping + Post-Processing to Screen (Chapter 39 & 40)
 		// =========================================================================
 		// Only perform tone mapping if HDR pipeline is active
 		if (m_HDREnabled && m_ToneMappingShader && m_HDRColorTexture && m_FullscreenQuad)
@@ -922,7 +922,7 @@ public:
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// IBL Controls (Chapter 34)
+		// IBL Controls (Chapter 38)
 		// =========================================================================
 		uiManager.StartWindow("IBL");
 		uiManager.Checkbox("Use IBL", &m_UseIBL);
@@ -946,7 +946,7 @@ public:
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// HDR & Tone Mapping Panel (Chapter 35)
+		// HDR & Tone Mapping Panel (Chapter 39)
 		// =========================================================================
 		uiManager.StartWindow("HDR & Tone Mapping");
 
@@ -994,7 +994,7 @@ public:
 		uiManager.EndWindow();
 
 		// =========================================================================
-		// Post-Processing Panel (Chapter 36)
+		// Post-Processing Panel (Chapter 40)
 		// =========================================================================
 		uiManager.StartWindow("Post-Processing");
 
@@ -1078,7 +1078,7 @@ public:
 					             / static_cast<float>(m_WindowHeight);
 					m_Camera.SetAspectRatio(aspect);
 
-					// Recreate HDR framebuffer with new dimensions (Chapter 35)
+					// Recreate HDR framebuffer with new dimensions (Chapter 39)
 					if (m_HDRFramebuffer)
 					{
 						VP_INFO("Recreating HDR framebuffer: {}x{}", m_WindowWidth, m_WindowHeight);
@@ -1135,7 +1135,7 @@ public:
 						}
 					}
 
-					// Recreate Bloom processor with new dimensions (Chapter 36)
+					// Recreate Bloom processor with new dimensions (Chapter 40)
 					if (m_Bloom)
 					{
 						VP_INFO("Recreating Bloom processor: {}x{}", m_WindowWidth / 2, m_WindowHeight / 2);
@@ -1328,7 +1328,7 @@ private:
 		glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
 		glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(model)));
 
-		// Use Material System (Chapter 38)
+		// Use Material System (Chapter 42)
 		m_PBRMaterial->SetModelMatrix(model);
 		m_PBRMaterial->SetNormalMatrix(normalMatrix);
 		m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
@@ -1571,7 +1571,7 @@ private:
 	std::unique_ptr<VizEngine::Skybox> m_Skybox;
 	bool m_ShowSkybox = true;
 
-	// IBL (Chapter 34)
+	// IBL (Chapter 38)
 	std::shared_ptr<VizEngine::Texture> m_IrradianceMap;
 	std::shared_ptr<VizEngine::Texture> m_PrefilteredMap;
 	std::shared_ptr<VizEngine::Texture> m_BRDFLut;
@@ -1582,7 +1582,7 @@ private:
 	glm::vec3 m_LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);  // Slightly blue-ish ground
 	float m_LowerHemisphereIntensity = 0.5f;
 
-	// PBR Rendering (Chapter 33)
+	// PBR Rendering (Chapter 37)
 	std::shared_ptr<VizEngine::Shader> m_DefaultLitShader;
 	std::shared_ptr<VizEngine::PBRMaterial> m_PBRMaterial;
 	std::shared_ptr<VizEngine::Mesh> m_SphereMesh;
@@ -1601,7 +1601,7 @@ private:
 	float m_PBRLightIntensity = 30.0f;
 	glm::vec3 m_PBRLightColor = glm::vec3(1.0f);  // White light
 
-	// HDR Pipeline (Chapter 35)
+	// HDR Pipeline (Chapter 39)
 	std::shared_ptr<VizEngine::Framebuffer> m_HDRFramebuffer;
 	std::shared_ptr<VizEngine::Texture> m_HDRColorTexture;
 	std::shared_ptr<VizEngine::Texture> m_HDRDepthTexture;
@@ -1616,7 +1616,7 @@ private:
 	bool m_HDREnabled = true;       // Tracks HDR pipeline availability
 	bool m_HdrFallbackWarned = false;  // One-time warning flag for HDR fallback
 
-	// Post-Processing (Chapter 36)
+	// Post-Processing (Chapter 40)
 	std::unique_ptr<VizEngine::Bloom> m_Bloom;
 	bool m_EnableBloom = true;
 	float m_BloomThreshold = 1.5f;
@@ -1624,7 +1624,7 @@ private:
 	float m_BloomIntensity = 0.04f;
 	int m_BloomBlurPasses = 5;
 
-	// Color Grading (Chapter 36)
+	// Color Grading (Chapter 41)
 	std::unique_ptr<VizEngine::Texture3D> m_ColorGradingLUT;
 	bool m_EnableColorGrading = false;
 	float m_LUTContribution = 1.0f;
