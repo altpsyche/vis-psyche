@@ -26,6 +26,7 @@ namespace VizEngine
 
 	void ForwardRenderPath::OnDetach()
 	{
+		m_IsValid = false;
 		VP_CORE_INFO("ForwardRenderPath detached");
 	}
 
@@ -88,8 +89,9 @@ namespace VizEngine
 		}
 
 		// IBL — textures via material (texture slots), scalar uniforms directly on shader
-		material.SetUseIBL(data.UseIBL);
-		if (data.UseIBL && data.IrradianceMap && data.PrefilteredMap && data.BRDFLut)
+		bool iblValid = data.UseIBL && data.IrradianceMap && data.PrefilteredMap && data.BRDFLut;
+		material.SetUseIBL(iblValid);
+		if (iblValid)
 		{
 			material.SetIrradianceMap(data.IrradianceMap);
 			material.SetPrefilteredMap(data.PrefilteredMap);
@@ -112,8 +114,9 @@ namespace VizEngine
 		auto& scene = *data.ScenePtr;
 		auto& renderer = *data.RendererPtr;
 
-		// Separate opaque and transparent objects
+		// Separate opaque, instanced, and transparent objects
 		std::vector<size_t> opaqueIndices;
+		std::vector<size_t> instancedIndices;
 		std::vector<size_t> transparentIndices;
 
 		for (size_t i = 0; i < scene.Size(); i++)
@@ -121,7 +124,9 @@ namespace VizEngine
 			auto& obj = scene[i];
 			if (!obj.Active || !obj.MeshPtr) continue;
 
-			if (obj.Color.a < 1.0f)
+			if (obj.InstanceCount > 0)
+				instancedIndices.push_back(i);
+			else if (obj.Color.a < 1.0f)
 				transparentIndices.push_back(i);
 			else
 				opaqueIndices.push_back(i);
@@ -131,6 +136,12 @@ namespace VizEngine
 		for (size_t idx : opaqueIndices)
 		{
 			RenderSingleObject(scene[idx], data);
+		}
+
+		// Render instanced objects
+		for (size_t idx : instancedIndices)
+		{
+			RenderInstancedObject(scene[idx], data);
 		}
 
 		// Sort and render transparent objects back-to-front
@@ -187,6 +198,39 @@ namespace VizEngine
 
 		obj.MeshPtr->Bind();
 		renderer.Draw(obj.MeshPtr->GetVertexArray(), obj.MeshPtr->GetIndexBuffer(), *shader);
+	}
+
+	void ForwardRenderPath::RenderInstancedObject(SceneObject& obj, const RenderPassData& data)
+	{
+		if (!data.InstancedShader) return;
+
+		auto& renderer = *data.RendererPtr;
+		auto& shader = *data.InstancedShader;
+
+		shader.Bind();
+		shader.SetMatrix4fv("u_View", data.CameraPtr->GetViewMatrix());
+		shader.SetMatrix4fv("u_Projection", data.CameraPtr->GetProjectionMatrix());
+		shader.SetVec3("u_ViewPos", data.CameraPtr->GetPosition());
+
+		if (data.DirLight)
+		{
+			shader.SetVec3("u_DirLightDirection", data.DirLight->GetDirection());
+			shader.SetVec3("u_DirLightColor", data.DirLight->Diffuse);
+		}
+
+		shader.SetVec3("u_ObjectColor", glm::vec3(obj.Color));
+
+		obj.MeshPtr->Bind();
+		renderer.DrawInstanced(
+			obj.MeshPtr->GetVertexArray(),
+			obj.MeshPtr->GetIndexBuffer(),
+			shader,
+			obj.InstanceCount
+		);
+
+		// Re-bind the PBR material shader so subsequent objects use the correct program
+		if (data.Material)
+			data.Material->GetShader()->Bind();
 	}
 
 	void ForwardRenderPath::OnResize(int /*width*/, int /*height*/)

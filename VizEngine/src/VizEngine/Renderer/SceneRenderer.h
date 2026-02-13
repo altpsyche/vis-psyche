@@ -107,7 +107,8 @@ namespace VizEngine
 		glm::vec4 GetOutlineColor() const { return m_OutlineColor; }
 		float GetOutlineScale() const { return m_OutlineScale; }
 
-		// Instancing demo
+		// Instancing (Chapter 35)
+		void SetInstancedShader(std::shared_ptr<Shader> shader) { m_InstancedShader = shader; }
 		void SetInstancingEnabled(bool enable) { m_ShowInstancingDemo = enable; }
 
 		// Clear color
@@ -177,6 +178,7 @@ namespace VizEngine
 		int m_SelectedObject = 0;
 
 		// Instancing
+		std::shared_ptr<Shader> m_InstancedShader;
 		bool m_ShowInstancingDemo = false;
 
 		// Clear color

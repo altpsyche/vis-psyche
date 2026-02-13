@@ -80,9 +80,13 @@ namespace VizEngine
 		m_ShadowDepthShader->SetMatrix4fv("u_LightSpaceMatrix", lightSpaceMatrix);
 
 		// Render scene geometry (depth only)
+		// Note: instanced objects are skipped — they use per-instance model matrices
+		// from vertex attributes, not the u_Model uniform. Proper instanced shadow
+		// casting would require a separate instanced shadow depth shader.
 		for (auto& obj : scene)
 		{
 			if (!obj.Active || !obj.MeshPtr) continue;
+			if (obj.InstanceCount > 0) continue;
 
 			glm::mat4 model = obj.ObjectTransform.GetModelMatrix();
 			m_ShadowDepthShader->SetMatrix4fv("u_Model", model);

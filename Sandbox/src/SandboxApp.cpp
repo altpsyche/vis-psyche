@@ -113,17 +113,33 @@ public:
 		m_SkyboxCubemap = VizEngine::CubemapUtils::EquirectangularToCubemap(environmentHDRI, cubemapResolution);
 		environmentHDRI.reset();
 
-		m_Skybox = std::make_unique<VizEngine::Skybox>(m_SkyboxCubemap);
-		VP_INFO("Skybox ready!");
+		if (!m_SkyboxCubemap)
+		{
+			VP_ERROR("Failed to create skybox cubemap - disabling skybox/IBL");
+			m_ShowSkybox = false;
+			m_UseIBL = false;
+		}
+		else
+		{
+			m_Skybox = std::make_unique<VizEngine::Skybox>(m_SkyboxCubemap);
+			VP_INFO("Skybox ready!");
+		}
 
 		// =========================================================================
 		// Generate IBL Maps (Chapter 38)
 		// =========================================================================
 		auto iblStart = std::chrono::high_resolution_clock::now();
 
-		m_IrradianceMap = VizEngine::CubemapUtils::GenerateIrradianceMap(m_SkyboxCubemap, 32);
-		m_PrefilteredMap = VizEngine::CubemapUtils::GeneratePrefilteredMap(m_SkyboxCubemap, 512);
-		m_BRDFLut = VizEngine::CubemapUtils::GenerateBRDFLUT(512);
+		if (m_UseIBL && m_SkyboxCubemap)
+		{
+			m_IrradianceMap = VizEngine::CubemapUtils::GenerateIrradianceMap(m_SkyboxCubemap, 32);
+			m_PrefilteredMap = VizEngine::CubemapUtils::GeneratePrefilteredMap(m_SkyboxCubemap, 512);
+			m_BRDFLut = VizEngine::CubemapUtils::GenerateBRDFLUT(512);
+		}
+		else
+		{
+			m_UseIBL = false;
+		}
 
 		bool iblValid = m_IrradianceMap && m_PrefilteredMap && m_BRDFLut;
 		if (!iblValid)
@@ -183,6 +199,7 @@ public:
 		m_SceneRenderer->SetOutlineColor(m_OutlineColor);
 		m_SceneRenderer->SetOutlineScale(m_OutlineScale);
 		m_SceneRenderer->SetSelectedObject(m_SelectedObject);
+		m_SceneRenderer->SetInstancedShader(m_InstancedShader);
 
 		VP_INFO("Scene Renderer initialized: {}", m_SceneRenderer->GetRenderPathName());
 
@@ -287,6 +304,14 @@ public:
 		{
 			m_PBRMaterial->SetUseIBL(m_UseIBL);
 		}
+
+		// Sync instancing demo state to the scene object
+		if (m_InstancedSceneIndex >= 0 && m_InstancedSceneIndex < static_cast<int>(m_Scene.Size()))
+		{
+			auto& instancedObj = m_Scene[static_cast<size_t>(m_InstancedSceneIndex)];
+			instancedObj.Active = m_ShowInstancingDemo;
+			instancedObj.Color = glm::vec4(m_InstanceColor, 1.0f);
+		}
 	}
 
 	void OnRender() override
@@ -300,28 +325,6 @@ public:
 		if (m_SceneRenderer)
 		{
 			m_SceneRenderer->Render(m_Scene, m_Camera, renderer);
-		}
-
-		// =========================================================================
-		// Chapter 35: Instancing Demo (rendered after post-processing)
-		// =========================================================================
-		if (m_ShowInstancingDemo && m_InstancedShader && m_InstancedCubeMesh && m_InstanceVBO)
-		{
-			m_InstancedShader->Bind();
-			m_InstancedShader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
-			m_InstancedShader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
-			m_InstancedShader->SetVec3("u_ViewPos", m_Camera.GetPosition());
-			m_InstancedShader->SetVec3("u_DirLightDirection", m_Light.GetDirection());
-			m_InstancedShader->SetVec3("u_DirLightColor", m_Light.Diffuse);
-			m_InstancedShader->SetVec3("u_ObjectColor", m_InstanceColor);
-
-			m_InstancedCubeMesh->Bind();
-			renderer.DrawInstanced(
-				m_InstancedCubeMesh->GetVertexArray(),
-				m_InstancedCubeMesh->GetIndexBuffer(),
-				*m_InstancedShader,
-				m_InstanceCount
-			);
 		}
 
 		// =========================================================================
@@ -346,6 +349,7 @@ public:
 			for (auto& obj : m_Scene)
 			{
 				if (!obj.Active || !obj.MeshPtr) continue;
+				if (obj.InstanceCount > 0) continue; // Instanced objects use a different shader
 
 				// Set PBR properties + rebind textures via material
 				m_PBRMaterial->SetAlbedo(glm::vec3(obj.Color));
@@ -874,6 +878,13 @@ private:
 
 		m_InstancedCubeMesh->GetVertexArray().LinkInstanceBuffer(*m_InstanceVBO, instanceLayout, 6);
 
+		// Add instanced cubes to the scene as a scene-level object
+		auto& instancedObj = m_Scene.Add(m_InstancedCubeMesh, "Instanced Cubes");
+		instancedObj.InstanceCount = m_InstanceCount;
+		instancedObj.Color = glm::vec4(m_InstanceColor, 1.0f);
+		instancedObj.Active = m_ShowInstancingDemo;
+		m_InstancedSceneIndex = static_cast<int>(m_Scene.Size()) - 1;
+
 		VP_INFO("Instancing demo ready: {} instances ({}x{} grid)", m_InstanceCount, gridSize, gridSize);
 	}
 
@@ -967,6 +978,7 @@ private:
 	std::shared_ptr<VizEngine::Mesh> m_InstancedCubeMesh;
 	std::unique_ptr<VizEngine::VertexBuffer> m_InstanceVBO;
 	int m_InstanceCount = 0;
+	int m_InstancedSceneIndex = -1;
 	bool m_ShowInstancingDemo = false;
 	glm::vec3 m_InstanceColor = glm::vec3(0.4f, 0.7f, 0.9f);
 };

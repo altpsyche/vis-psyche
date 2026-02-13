@@ -79,6 +79,7 @@ namespace VizEngine
 			passData.TargetFramebuffer = m_HDRFramebuffer;
 			passData.Material = m_PBRMaterial;
 			passData.DefaultLitShader = m_DefaultLitShader;
+			passData.InstancedShader = m_InstancedShader;
 			passData.Quad = m_FullscreenQuad;
 			passData.IrradianceMap = m_IrradianceMap;
 			passData.PrefilteredMap = m_PrefilteredMap;

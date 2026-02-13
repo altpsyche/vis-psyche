@@ -43,5 +43,10 @@ namespace VizEngine
 		 * Render a single object with PBR material.
 		 */
 		void RenderSingleObject(SceneObject& obj, const RenderPassData& data);
+
+		/**
+		 * Render an instanced object with the instanced shader.
+		 */
+		void RenderInstancedObject(SceneObject& obj, const RenderPassData& data);
 	};
 }

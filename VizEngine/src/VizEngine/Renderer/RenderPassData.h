@@ -71,6 +71,7 @@ namespace VizEngine
 		// Shared rendering resources
 		std::shared_ptr<PBRMaterial> Material;
 		std::shared_ptr<Shader> DefaultLitShader;
+		std::shared_ptr<Shader> InstancedShader;      // For instanced objects (Chapter 35)
 		std::shared_ptr<FullscreenQuad> Quad;
 
 		// IBL resources
