@@ -281,6 +281,12 @@ public:
 			m_SceneRenderer->SetOutlineScale(m_OutlineScale);
 			m_SceneRenderer->SetSelectedObject(m_SelectedObject);
 		}
+
+		// Sync IBL settings to the offscreen preview material so F2 preview matches
+		if (m_PBRMaterial)
+		{
+			m_PBRMaterial->SetUseIBL(m_UseIBL);
+		}
 	}
 
 	void OnRender() override
@@ -335,6 +341,7 @@ public:
 			shader->Bind();
 			shader->SetMatrix4fv("u_View", m_Camera.GetViewMatrix());
 			shader->SetMatrix4fv("u_Projection", m_Camera.GetProjectionMatrix());
+			shader->SetFloat("u_IBLIntensity", m_UseIBL ? m_IBLIntensity : 0.0f);
 
 			for (auto& obj : m_Scene)
 			{

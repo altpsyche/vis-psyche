@@ -56,9 +56,13 @@ namespace VizEngine
 		shader->SetMatrix4fv("u_Projection", data.CameraPtr->GetProjectionMatrix());
 		shader->SetVec3("u_ViewPos", data.CameraPtr->GetPosition());
 
-		// Point lights
-		shader->SetInt("u_LightCount", data.PointLightCount);
-		for (int i = 0; i < data.PointLightCount; ++i)
+		// Point lights (guard against null arrays)
+		int lightCount = data.PointLightCount;
+		if (lightCount > 0 && (!data.PointLightPositions || !data.PointLightColors))
+			lightCount = 0;
+
+		shader->SetInt("u_LightCount", lightCount);
+		for (int i = 0; i < lightCount; ++i)
 		{
 			shader->SetVec3("u_LightPositions[" + std::to_string(i) + "]", data.PointLightPositions[i]);
 			shader->SetVec3("u_LightColors[" + std::to_string(i) + "]", data.PointLightColors[i]);

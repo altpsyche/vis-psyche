@@ -11,6 +11,7 @@
 #include "VizEngine/Log.h"
 
 #include <glad/glad.h>
+#include <algorithm>
 
 namespace VizEngine
 {
@@ -19,9 +20,9 @@ namespace VizEngine
 	PostProcessPipeline::PostProcessPipeline(int width, int height)
 		: m_Width(width), m_Height(height)
 	{
-		// Create Bloom processor (half resolution)
-		int bloomWidth = width / 2;
-		int bloomHeight = height / 2;
+		// Create Bloom processor (half resolution, clamped to at least 1)
+		int bloomWidth = std::max(width / 2, 1);
+		int bloomHeight = std::max(height / 2, 1);
 		m_Bloom = std::make_unique<Bloom>(bloomWidth, bloomHeight);
 
 		if (!m_Bloom || !m_Bloom->IsValid())
@@ -87,23 +88,25 @@ namespace VizEngine
 		m_ToneMappingShader->SetFloat("u_Gamma", m_Gamma);
 		m_ToneMappingShader->SetFloat("u_WhitePoint", m_WhitePoint);
 
-		// Bloom
-		m_ToneMappingShader->SetBool("u_EnableBloom", m_EnableBloom);
+		// Bloom (only enable when the texture is actually available)
+		bool enableBloom = m_EnableBloom && bloomTexture;
+		m_ToneMappingShader->SetBool("u_EnableBloom", enableBloom);
 		m_ToneMappingShader->SetFloat("u_BloomIntensity", m_BloomIntensity);
-		if (bloomTexture)
+		if (enableBloom)
 		{
 			bloomTexture->Bind(TextureSlots::BloomTexture);
 			m_ToneMappingShader->SetInt("u_BloomTexture", TextureSlots::BloomTexture);
 		}
 
-		// Color grading
-		m_ToneMappingShader->SetBool("u_EnableColorGrading", m_EnableColorGrading);
+		// Color grading (only enable when the LUT is actually available)
+		bool enableColorGrading = m_EnableColorGrading && m_ColorGradingLUT;
+		m_ToneMappingShader->SetBool("u_EnableColorGrading", enableColorGrading);
 		m_ToneMappingShader->SetFloat("u_LUTContribution", m_LUTContribution);
 		m_ToneMappingShader->SetFloat("u_Saturation", m_Saturation);
 		m_ToneMappingShader->SetFloat("u_Contrast", m_Contrast);
 		m_ToneMappingShader->SetFloat("u_Brightness", m_Brightness);
 
-		if (m_EnableColorGrading && m_ColorGradingLUT)
+		if (enableColorGrading)
 		{
 			m_ColorGradingLUT->Bind(TextureSlots::ColorGradingLUT);
 			m_ToneMappingShader->SetInt("u_ColorGradingLUT", TextureSlots::ColorGradingLUT);
@@ -119,11 +122,11 @@ namespace VizEngine
 		m_Width = width;
 		m_Height = height;
 
-		// Recreate Bloom at half resolution
+		// Recreate Bloom at half resolution (clamped to at least 1)
 		if (m_Bloom)
 		{
 			auto oldBloom = std::move(m_Bloom);
-			m_Bloom = std::make_unique<Bloom>(width / 2, height / 2);
+			m_Bloom = std::make_unique<Bloom>(std::max(width / 2, 1), std::max(height / 2, 1));
 
 			if (m_Bloom && m_Bloom->IsValid())
 			{

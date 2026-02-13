@@ -96,12 +96,15 @@ namespace VizEngine
 			m_ActivePath->Execute(passData);
 		}
 
+		// Re-bind HDR framebuffer to ensure skybox and outlines render to correct target
+		// (in case Execute() unbound it or the main pass was skipped)
+		m_HDRFramebuffer->Bind();
+
 		// =====================================================================
 		// 3. Skybox (rendered into HDR framebuffer, after main pass)
 		// =====================================================================
 		if (m_ShowSkybox && m_Skybox)
 		{
-			// HDR framebuffer should still be bound from Execute()
 			m_Skybox->Render(camera);
 		}
 
@@ -166,6 +169,9 @@ namespace VizEngine
 	{
 		if (width <= 0 || height <= 0) return;
 
+		int oldWidth = m_Width;
+		int oldHeight = m_Height;
+
 		m_Width = width;
 		m_Height = height;
 
@@ -178,11 +184,14 @@ namespace VizEngine
 
 		if (!m_HDREnabled)
 		{
-			// Restore old resources on failure
+			// Restore old resources and dimensions on failure
 			m_HDRFramebuffer = oldFB;
 			m_HDRColorTexture = oldColor;
 			m_HDRDepthTexture = oldDepth;
 			m_HDREnabled = (m_HDRFramebuffer != nullptr);
+			m_Width = oldWidth;
+			m_Height = oldHeight;
+			return;
 		}
 
 		// Resize render path
@@ -211,6 +220,14 @@ namespace VizEngine
 
 	void SceneRenderer::SetPointLights(glm::vec3* positions, glm::vec3* colors, int count)
 	{
+		if (count > 0 && (!positions || !colors))
+		{
+			m_PointLightPositions = nullptr;
+			m_PointLightColors = nullptr;
+			m_PointLightCount = 0;
+			return;
+		}
+
 		m_PointLightPositions = positions;
 		m_PointLightColors = colors;
 		m_PointLightCount = count;
