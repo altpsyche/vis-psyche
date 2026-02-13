@@ -38,6 +38,10 @@ set(VIZENGINE_SOURCES
     src/VizEngine/Renderer/PBRMaterial.cpp
     src/VizEngine/Renderer/UnlitMaterial.cpp
     src/VizEngine/Renderer/MaterialFactory.cpp
+    src/VizEngine/Renderer/ShadowPass.cpp
+    src/VizEngine/Renderer/PostProcessPipeline.cpp
+    src/VizEngine/Renderer/ForwardRenderPath.cpp
+    src/VizEngine/Renderer/SceneRenderer.cpp
     
     # GUI
     src/VizEngine/GUI/UIManager.cpp
@@ -92,6 +96,12 @@ set(VIZENGINE_HEADERS
     src/VizEngine/Renderer/PBRMaterial.h
     src/VizEngine/Renderer/UnlitMaterial.h
     src/VizEngine/Renderer/MaterialFactory.h
+    src/VizEngine/Renderer/RenderPassData.h
+    src/VizEngine/Renderer/RenderPath.h
+    src/VizEngine/Renderer/ShadowPass.h
+    src/VizEngine/Renderer/PostProcessPipeline.h
+    src/VizEngine/Renderer/ForwardRenderPath.h
+    src/VizEngine/Renderer/SceneRenderer.h
     
     # GUI headers
     src/VizEngine/GUI/UIManager.h
@@ -167,9 +177,10 @@ target_compile_definitions(VizEngine
 # Compiler Warnings
 # =============================================================================
 if(MSVC)
-    target_compile_options(VizEngine PRIVATE 
+    target_compile_options(VizEngine PRIVATE
         /W4           # High warning level
         /utf-8        # Required for spdlog/fmt Unicode support
+        /Zc:preprocessor  # Standards-conforming preprocessor (needed for __VA_OPT__)
         /wd4251       # DLL-interface warning (expected with spdlog)
         /wd4275       # Non-DLL-interface base class
     )
