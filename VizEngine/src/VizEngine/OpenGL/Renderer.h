@@ -13,7 +13,7 @@ namespace VizEngine
 	class VizEngine_API Renderer
 	{
 	public:
-		void Clear(float clearColor[4]);
+		void Clear(const float clearColor[4]);
 		void ClearDepth();
 		void SetViewport(int x, int y, int width, int height);
 		void Draw(const VertexArray& va, const IndexBuffer& ib, const Shader& shader) const;

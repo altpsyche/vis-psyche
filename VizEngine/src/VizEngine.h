@@ -29,6 +29,11 @@
 #include "VizEngine/Renderer/UnlitMaterial.h"
 #include "VizEngine/Renderer/MaterialFactory.h"
 
+// Scene Renderer Architecture (Chapter 43)
+#include "VizEngine/Renderer/RenderPassData.h"
+#include "VizEngine/Renderer/RenderPath.h"
+#include "VizEngine/Renderer/SceneRenderer.h"
+
 // Core types
 #include "VizEngine/Core/Camera.h"
 #include "VizEngine/Core/Transform.h"

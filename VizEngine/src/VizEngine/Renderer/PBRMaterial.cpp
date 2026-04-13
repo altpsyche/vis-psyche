@@ -19,7 +19,6 @@ namespace VizEngine
         SetBool("u_UseNormalMap", false);
         SetFloat("u_Alpha", m_Alpha);
         SetBool("u_UseIBL", false);
-        SetBool("u_UseShadows", false);
 
         // Lower hemisphere defaults (prevents black reflections on flat surfaces)
         SetVec3("u_LowerHemisphereColor", m_LowerHemisphereColor);
@@ -215,7 +214,7 @@ namespace VizEngine
     }
 
     // =========================================================================
-    // Shadow Mapping
+    // Shadow Map Texture
     // =========================================================================
 
     void PBRMaterial::SetShadowMap(std::shared_ptr<Texture> shadowMap)
@@ -226,57 +225,6 @@ namespace VizEngine
         }
     }
 
-    void PBRMaterial::SetLightSpaceMatrix(const glm::mat4& lightSpaceMatrix)
-    {
-        SetMat4("u_LightSpaceMatrix", lightSpaceMatrix);
-    }
-
-    void PBRMaterial::SetUseShadows(bool useShadows)
-    {
-        m_UseShadows = useShadows;
-        SetBool("u_UseShadows", useShadows);
-    }
-
-    // =========================================================================
-    // Transforms
-    // =========================================================================
-
-    void PBRMaterial::SetModelMatrix(const glm::mat4& model)
-    {
-        SetMat4("u_Model", model);
-    }
-
-    void PBRMaterial::SetNormalMatrix(const glm::mat3& normalMatrix)
-    {
-        SetMat3("u_NormalMatrix", normalMatrix);
-    }
-
-    void PBRMaterial::SetViewMatrix(const glm::mat4& view)
-    {
-        SetMat4("u_View", view);
-    }
-
-    void PBRMaterial::SetProjectionMatrix(const glm::mat4& projection)
-    {
-        SetMat4("u_Projection", projection);
-    }
-
-    void PBRMaterial::SetViewPosition(const glm::vec3& viewPos)
-    {
-        SetVec3("u_ViewPos", viewPos);
-    }
-
-    void PBRMaterial::SetTransforms(const glm::mat4& model, const glm::mat4& view,
-                                    const glm::mat4& projection, const glm::vec3& viewPos,
-                                    const glm::mat3& normalMatrix)
-    {
-        SetModelMatrix(model);
-        SetNormalMatrix(normalMatrix);
-        SetViewMatrix(view);
-        SetProjectionMatrix(projection);
-        SetViewPosition(viewPos);
-    }
-
     // =========================================================================
     // Upload Override
     // =========================================================================
@@ -285,8 +233,5 @@ namespace VizEngine
     {
         // Call base implementation to upload all stored parameters
         RenderMaterial::UploadParameters();
-
-        // Any PBR-specific upload logic can be added here
-        // (currently all handled by base class via stored parameters)
     }
 }

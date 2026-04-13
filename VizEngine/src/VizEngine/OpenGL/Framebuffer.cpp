@@ -183,6 +183,27 @@ namespace VizEngine
 		VP_CORE_INFO("Framebuffer {}: Attached depth-stencil texture {}", m_fbo, texture->GetID());
 	}
 
+	void Framebuffer::SetDrawBuffers(int attachmentCount)
+	{
+		if (attachmentCount < 1 || attachmentCount > 8)
+		{
+			VP_CORE_ERROR("Framebuffer: Draw buffer count {} out of range [1-8]", attachmentCount);
+			return;
+		}
+
+		GLenum attachments[8] = {
+			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+			GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+			GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+			GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7
+		};
+
+		Bind();
+		glDrawBuffers(attachmentCount, attachments);
+
+		VP_CORE_INFO("Framebuffer {}: Set {} draw buffers", m_fbo, attachmentCount);
+	}
+
 	bool Framebuffer::IsComplete() const
 	{
 		// Temporarily bind framebuffer to check status

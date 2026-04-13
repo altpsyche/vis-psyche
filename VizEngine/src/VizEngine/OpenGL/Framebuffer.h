@@ -85,6 +85,13 @@ namespace VizEngine
 		int GetHeight() const { return m_Height; }
 
 		/**
+		 * Configure which color attachments are active for rendering (MRT).
+		 * Must be called after attaching multiple color textures.
+		 * @param attachmentCount Number of color attachments to enable (1-8)
+		 */
+		void SetDrawBuffers(int attachmentCount);
+
+		/**
 		 * Get the OpenGL framebuffer ID.
 		 */
 		unsigned int GetID() const { return m_fbo; }

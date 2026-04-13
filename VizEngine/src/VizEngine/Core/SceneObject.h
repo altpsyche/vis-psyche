@@ -43,6 +43,9 @@ namespace VizEngine
 		// When set, this takes precedence over direct properties above
 		std::shared_ptr<RenderMaterial> MaterialRef;
 
+		// Instancing (Chapter 35)
+		int InstanceCount = 0;                       // 0 = normal draw, >0 = instanced draw
+
 		// State
 		bool Active = true;                          // Enable/disable rendering
 		std::string Name = "Object";                 // Display name for UI
