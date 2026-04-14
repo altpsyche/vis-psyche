@@ -140,6 +140,52 @@ print(f"After cleanup: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges"
 if viz_nodes or isolates:
     print(f"  Removed: {len(viz_nodes)} VizEngine() pseudo-nodes + {len(isolates)} isolates")
 
+# ── Merge _cpp_ duplicate class nodes into stem_stem canonical form ───────────
+# AST semantic extraction of .cpp files creates nodes like scene_cpp_Scene for
+# class definitions. Doc chapters link to the stem_stem form (scene_scene).
+# These are the same entity — merge them: redirect all edges from _cpp_ to
+# stem_stem, then remove the _cpp_ node.
+merged_cpp = 0
+for n in list(G.nodes()):
+    if "_cpp_" not in n:
+        continue
+    stem = n.split("_cpp_")[0]
+    canonical = f"{stem}_{stem}"          # e.g. scene_scene
+    if canonical not in G.nodes():
+        continue                           # no stem_stem twin — keep as-is
+    # Redirect every edge touching the _cpp_ node to the canonical node
+    for pred in list(G.predecessors(n)):
+        if pred != canonical:
+            edge_data = G.edges[pred, n].copy()
+            if not G.has_edge(pred, canonical):
+                G.add_edge(pred, canonical, **edge_data)
+    for succ in list(G.successors(n)):
+        if succ != canonical:
+            edge_data = G.edges[n, succ].copy()
+            if not G.has_edge(canonical, succ):
+                G.add_edge(canonical, succ, **edge_data)
+    # Copy any attributes the _cpp_ node has that canonical lacks
+    for attr, val in G.nodes[n].items():
+        if attr not in G.nodes[canonical] or G.nodes[canonical][attr] is None:
+            G.nodes[canonical][attr] = val
+    G.remove_node(n)
+    merged_cpp += 1
+
+if merged_cpp:
+    print(f"Merged {merged_cpp} _cpp_ duplicate nodes into canonical stem_stem form")
+
+# ── Deduplicate hyperedges by label ──────────────────────────────────────────
+seen_hyp_labels: set[str] = set()
+deduped_hyp: list[dict] = []
+for h in hyperedges:
+    label = h.get("label", "")
+    if label not in seen_hyp_labels:
+        seen_hyp_labels.add(label)
+        deduped_hyp.append(h)
+if len(deduped_hyp) < len(hyperedges):
+    print(f"Deduped hyperedges: {len(hyperedges)} -> {len(deduped_hyp)}")
+hyperedges = deduped_hyp
+
 # ── Boost cross-type edge weights ─────────────────────────────────────────────
 boosted = 0
 for u, v, d in G.edges(data=True):
@@ -215,6 +261,56 @@ report_text = generate(
     surprise_list=surprise_list, detection_result=detection_result,
     token_cost=token_cost, root="VizEngine", suggested_questions=suggested_q,
 )
+
+# ── Append coverage gap report ────────────────────────────────────────────────
+doc_node_ids = {n for n, d in G.nodes(data=True) if d.get("file_type") == "document"}
+code_node_ids = {n for n, d in G.nodes(data=True) if d.get("file_type") == "code"}
+
+# Code class nodes with no doc edges (coverage gaps = next chapters to write)
+# Filter to class-level nodes only: stem_stem pattern (one underscore, not method-level)
+def is_class_node(nid: str) -> bool:
+    parts = nid.split("_")
+    return len(parts) == 2 and parts[0] == parts[1]
+
+gaps = []
+for n in code_node_ids:
+    if not is_class_node(n):
+        continue
+    neighbors = set(G.predecessors(n)) | set(G.successors(n))
+    if not (neighbors & doc_node_ids):
+        gaps.append((n, G.nodes[n].get("label", n), G.degree(n)))
+
+gaps.sort(key=lambda x: -x[2])  # highest-connectivity gaps first
+
+# Doc nodes with no code edges (concept without code counterpart)
+doc_gaps = []
+for n in doc_node_ids:
+    neighbors = set(G.predecessors(n)) | set(G.successors(n))
+    if not (neighbors & code_node_ids):
+        doc_gaps.append((n, G.nodes[n].get("label", n)))
+
+coverage_section = "\n## Coverage Gaps\n\n"
+coverage_section += f"### Code classes with no doc coverage ({len(gaps)} gaps)\n"
+coverage_section += "_These engine classes have no chapter yet — highest-connectivity = highest priority to document._\n\n"
+if gaps:
+    coverage_section += "| Class | Label | Edges |\n|-------|-------|-------|\n"
+    for nid, label, deg in gaps[:30]:
+        coverage_section += f"| `{nid}` | {label} | {deg} |\n"
+    if len(gaps) > 30:
+        coverage_section += f"\n_...and {len(gaps)-30} more (lower connectivity)_\n"
+else:
+    coverage_section += "_All class nodes have doc coverage._\n"
+
+coverage_section += f"\n### Doc concepts with no code node ({len(doc_gaps)} gaps)\n"
+coverage_section += "_These chapter concepts mention code that doesn't have a graph node yet._\n\n"
+if doc_gaps:
+    for nid, label in sorted(doc_gaps, key=lambda x: x[1])[:20]:
+        coverage_section += f"- `{nid}`: {label}\n"
+else:
+    coverage_section += "_All doc concepts link to code nodes._\n"
+
+report_text += coverage_section
+
 Path("graphify-out/GRAPH_REPORT.md").write_text(report_text, encoding="utf-8")
 print("Saved: graphify-out/GRAPH_REPORT.md")
 
