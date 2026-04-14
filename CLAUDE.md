@@ -12,31 +12,37 @@ Output lives at `graphify-out/` at the project root. Running from a subdirectory
 **Code commits → hook runs automatically.**
 The post-commit hook:
 1. Runs AST on `VizEngine/src` (no LLM, no vendor files)
-2. Merges new code nodes into the existing `graphify-out/graph.json`, preserving all semantic + cross-type edges
+2. Merges new code nodes into `graphify-out/graph.json`, **preserving all doc nodes and cross-type edges**
 3. Re-clusters and re-applies community labels via `graphify_rebuild.py`
 
-Cross-type edges (code ↔ doc) are preserved across every commit. No manual step needed for routine code changes.
+No manual step needed for routine code changes.
 
-**Doc changes → hook does NOT run LLM extraction.** After committing doc edits run:
-```
-/graphify VizEngine/docs/vis-psyche-docs --directed --update
-```
-Then run `python graphify_rebuild.py` to re-cluster.
+**After writing or significantly revising a chapter:**
+1. Ask Claude Code to run the doc subagent extraction for the new/changed file(s)
+   (5 files per subagent, dedicated doc context — see below for the pattern)
+2. Then run:
+   ```
+   python graphify_update_docs.py
+   ```
+   This merges the new doc nodes into the existing graph without touching code nodes.
 
-**Adding new source files or wanting full semantic re-extraction:**
-```
-/graphify VizEngine/src --directed
-```
-(No `--update` — full run builds fresh semantic edges for all code files. Follow with `python graphify_rebuild.py`.)
+**Do NOT use `/graphify VizEngine/src --directed` or `/graphify VizEngine/docs/... --directed` directly** — the skill always rebuilds `graph.json` from only the detected path, destroying the other half of the unified graph. Always use the scripts below for incremental updates.
 
-**Do NOT run `/graphify VizEngine --directed`** — scans vendor dirs (GLFW, GLM, glad) and floods the pipeline. Always scope to `VizEngine/src` or `VizEngine/docs/vis-psyche-docs`.
+### Safe update scripts (always use these, never the raw skill)
+
+| Situation | Command |
+|-----------|---------|
+| Code changed (committed) | Hook runs automatically |
+| New/revised chapter added | `python graphify_update_docs.py` (after LLM extraction) |
+| Community labels wrong/missing | `python graphify_rebuild.py` |
+| Full unified rebuild needed | Ask Claude Code — manual combined pipeline (src + docs, mixed chunks) |
 
 ### After community labels shift (new chapters or source files added)
 
 ```
 python graphify_rebuild.py
 ```
-`graphify_rebuild.py` at the project root contains the full community label dict (82 communities). It cleans pseudo-nodes, boosts cross-type edge weights, re-clusters, and regenerates all outputs. When the script prints `WARNING: N communities have no label`, add entries to `COMMUNITY_LABELS` in that file and re-run.
+Contains 82 community labels. Cleans pseudo-nodes, boosts cross-type edge weights (weight=8.0), re-clusters, regenerates all outputs. When it prints `WARNING: N communities have no label`, add entries to `COMMUNITY_LABELS` in that file and re-run.
 
 ### Reading the graph
 

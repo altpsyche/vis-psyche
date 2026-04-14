@@ -1,12 +1,12 @@
 # Graph Report - VizEngine  (2026-04-14)
 
 ## Corpus Check
-- 1006 files · ~200,000 words
+- 962 files · ~200,000 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1006 nodes · 1683 edges · 57 communities detected
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 124 edges (avg confidence: 0.85)
+- 962 nodes · 1274 edges · 69 communities detected
+- Extraction: 66% EXTRACTED · 34% INFERRED · 0% AMBIGUOUS · INFERRED: 430 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
@@ -67,38 +67,51 @@
 - [[_COMMUNITY_Shadow Pass API|Shadow Pass API]]
 - [[_COMMUNITY_glTF Format Concepts|glTF Format Concepts]]
 - [[_COMMUNITY_Texture Asset Placeholders|Texture Asset Placeholders]]
+- [[_COMMUNITY_Error Handling System|Error Handling System]]
+- [[_COMMUNITY_Entry Point|Entry Point]]
+- [[_COMMUNITY_Material Bind|Material Bind]]
+- [[_COMMUNITY_DLL Export Macro|DLL Export Macro]]
+- [[_COMMUNITY_Camera Controller & Delta Time|Camera Controller & Delta Time]]
+- [[_COMMUNITY_Texture Filtering|Texture Filtering]]
+- [[_COMMUNITY_Shadow Map Texture Config|Shadow Map Texture Config]]
+- [[_COMMUNITY_Alpha Channel Design|Alpha Channel Design]]
+- [[_COMMUNITY_Input System Hook|Input System Hook]]
+- [[_COMMUNITY_Error Handling Hook|Error Handling Hook]]
+- [[_COMMUNITY_Singleton Pattern|Singleton Pattern]]
+- [[_COMMUNITY_Window & Context (A_Reference)|Window & Context (A_Reference)]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Renderer` - 35 edges
-2. `Shader` - 30 edges
-3. `Chapter 43: Scene Renderer Architecture` - 29 edges
-4. `Texture` - 27 edges
-5. `Chapter 23: Engine and Game Loop` - 26 edges
-6. `Chapter 42: Material System` - 25 edges
-7. `Chapter 9: Buffer Classes` - 23 edges
-8. `Mesh` - 23 edges
-9. `Chapter 24: Sandbox Migration` - 23 edges
-10. `Chapter 25: Event System` - 22 edges
+1. `Chapter 9: Buffer Classes` - 16 edges
+2. `VizPsyche Engine` - 16 edges
+3. `Chapter 6: Window & Context` - 13 edges
+4. `Chapter 7: OpenGL Fundamentals` - 13 edges
+5. `ComputeTangents()` - 12 edges
+6. `Shader()` - 12 edges
+7. `Chapter 8: RAII & Resource Management` - 11 edges
+8. `Application()` - 11 edges
+9. `Texture()` - 11 edges
+10. `Chapter 5: Logging System` - 10 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Chapter 34: Normal Mapping` --conceptually_related_to--> `SetMatrix3fv()`  [INFERRED]
-  VizEngine/docs/vis-psyche-docs/chapters/34_NormalMapping.md → VizEngine\src\VizEngine\OpenGL\Shader.cpp
-- `Chapter 4: DLL Architecture` --teaches--> `Sandbox (SandboxApp)`  [EXTRACTED]
-  VizEngine/docs/vis-psyche-docs/chapters/04_DLLArchitecture.md → Sandbox/src/SandboxApp.cpp
-- `GLFWManager (C++ class)` --calls--> `Init()`  [EXTRACTED]
-  VizEngine/docs/vis-psyche-docs/chapters/23_EngineAndGameLoop.md → VizEngine\src\VizEngine\OpenGL\GLFWManager.cpp
-- `GLFWManager (C++ class)` --calls--> `Shutdown()`  [EXTRACTED]
-  VizEngine/docs/vis-psyche-docs/chapters/23_EngineAndGameLoop.md → VizEngine\src\VizEngine\OpenGL\GLFWManager.cpp
-- `Texture3D (C++ class)` --semantically_similar_to--> `CreateNeutralLUT3D()`  [INFERRED] [semantically similar]
-  VizEngine/src/VizEngine/OpenGL/Texture3D.h → VizEngine\src\VizEngine\OpenGL\Texture.cpp
-- `BindTexture3D()` --references--> `Chapter 41: Color Grading`  [EXTRACTED]
-  VizEngine\src\VizEngine\OpenGL\Texture.cpp → VizEngine/docs/vis-psyche-docs/chapters/41_ColorGrading.md
-- `Chapter 0: Introduction` --references--> `Application (OnEvent virtual method)`  [INFERRED]
-  VizEngine/docs/vis-psyche-docs/chapters/00_Introduction.md → VizEngine/src/VizEngine/Application.h
-- `Chapter 0: Introduction` --references--> `Mesh`  [INFERRED]
-  VizEngine/docs/vis-psyche-docs/chapters/00_Introduction.md → VizEngine/src/VizEngine/OpenGL/Mesh.h
+- `Two-Pass HDR Rendering` --references--> `SceneRenderer()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/39_HDRPipeline.md → VizEngine\src\VizEngine\Renderer\SceneRenderer.cpp
+- `Uniform Setter Methods` --teaches--> `SetVec3()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/10_ShaderAndRenderer.md → VizEngine\src\VizEngine\OpenGL\Shader.cpp
+- `MVP Matrix Uniform` --teaches--> `SetMatrix4fv()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/10_ShaderAndRenderer.md → VizEngine\src\VizEngine\OpenGL\Shader.cpp
+- `Texture System` --teaches--> `Texture()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/11_Textures.md → VizEngine\src\VizEngine\OpenGL\Texture.cpp
+- `Texture System` --references--> `VertexArray()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/11_Textures.md → VizEngine\src\VizEngine\OpenGL\VertexArray.cpp
+- `Texture Wrapping Modes` --teaches--> `SetWrap()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/11_Textures.md → VizEngine\src\VizEngine\OpenGL\Texture.cpp
+- `Renderer Class` --teaches--> `Clear()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/12_Renderer.md → VizEngine\src\VizEngine\OpenGL\Renderer.cpp
+- `Draw Method with VAO, IBO, and Shader` --references--> `Shader()`  [INFERRED]
+  VizEngine/docs/vis-psyche-docs/chapters/12_Renderer.md → VizEngine\src\VizEngine\OpenGL\Shader.cpp
 
 ## Hyperedges (group relationships)
+- **Half vector H bisects the angle between L and V, used to approximate specular reflection vs surface normal N** — 15-half-vector_LightVector, 15-half-vector_ViewVector, 15-half-vector_HalfVector, 15-half-vector_SurfaceNormal [EXTRACTED 1.00]
 - **Layered Learning: Educational â†’ Rendering â†’ Production (three tiers building on each other)** — roadmap_layered_arch, roadmap_opt_in_complexity, ch00_rationale_build_then_refactor [EXTRACTED 0.90]
 - **PBR Rendering Stack** — a_reference_cook_torrance_brdf, a_reference_ibl, a_reference_hdr_pipeline, a_reference_tone_mapping, a_reference_pbrmaterial, a_reference_shader_defaultlit [INFERRED 0.90]
 - **SceneRenderer Pass Pipeline** — a_reference_scenerenderer, a_reference_shadowpass, a_reference_renderpath, a_reference_forwardrenderpath, a_reference_postprocesspipeline [EXTRACTED 1.00]
@@ -106,278 +119,325 @@
 - **OpenGL Buffer Pipeline** — a_reference_vertexbuffer, a_reference_indexbuffer, a_reference_vertexarray, a_reference_vertexbufferlayout [EXTRACTED 1.00]
 - **IBL Generation Pipeline** — a_reference_cubemaputils, a_reference_shader_equirect_to_cube, a_reference_shader_irradiance_convolution, a_reference_shader_prefilter, a_reference_shader_brdf [EXTRACTED 1.00]
 - **Post-Processing Stack** — a_reference_bloom, a_reference_tone_mapping, a_reference_color_grading, a_reference_postprocesspipeline, a_reference_fullscreenquad [EXTRACTED 1.00]
-- **Half vector H bisects the angle between L and V, used to approximate specular reflection vs surface normal N** — 15-half-vector_LightVector, 15-half-vector_ViewVector, 15-half-vector_HalfVector, 15-half-vector_SurfaceNormal [EXTRACTED 1.00]
 - **Engine Core Subsystems Initialization** — engine_cpp_Engine, glfwmanager_cpp_GLFWManager, renderer_cpp_Renderer, uimanager_cpp_UIManager, errorhandling_cpp_ErrorHandling, input_cpp_Input [EXTRACTED 0.95]
 - **Scene Render Pipeline** — scene_cpp_Scene, renderer_cpp_Renderer, shader_cpp_Shader, camera_cpp_Camera, mesh_cpp_Mesh, texture_cpp_Texture [EXTRACTED 0.90]
 - **IBL Generation Pipeline** — cubemaputils_cpp_CubemapUtils, texture_cpp_Texture, framebuffer_cpp_Framebuffer, shader_cpp_Shader [EXTRACTED 0.90]
 - **3D LUT Color Grading Implementations** — texture_cpp_Texture, texture3d_cpp_Texture3D, concept_lut3d [INFERRED 0.80]
-- **Mesh uses RAII buffer classes (VertexArray, VertexBuffer, IndexBuffer)** — mesh_mesh, ch08_raii_and_resource_management, ch09_buffer_classes [INFERRED 0.90]
-- **Model composes Mesh and Material for glTF asset loading** — model_model, mesh_mesh, material_material [EXTRACTED 0.95]
-- **DLL Architecture uses Core.h export macro to expose Application class** — ch04_dll_architecture, core_vizengine_api, application_application [EXTRACTED 0.95]
-- **Scene Rendering Pipeline** — scene_scene, sceneobject_sceneobject, renderer_renderer, shader_shader, camera_camera, mesh_mesh, transform_transform [EXTRACTED 0.95]
-- **Event System Class Hierarchy** — event_event, applicationevent_windowresizeevent, applicationevent_windowcloseevent, keyevent_keyevent, keyevent_keypressedevent, keyevent_keyreleasedevent, mouseevent_mousemovedevent, mouseevent_mousebuttonevent, event_eventdispatcher [EXTRACTED 1.00]
-- **Engine Core Subsystems** — engine_engine, renderer_renderer, uimanager_uimanager, entrypoint_entrypoint [EXTRACTED 0.95]
-- **Pedagogical Progression Chapters 10-19** — ch10_shader_system, ch11_textures, ch12_renderer, ch13_transform_and_mesh, ch14_camera_system, ch15_scene_management, ch16_dear_imgui, ch17_lighting, ch18_gltf_format, ch19_model_loader_geometry [INFERRED 0.90]
-- **SceneObject Data Bundle** — sceneobject_sceneobject, mesh_mesh, transform_transform, texture_texture, rendermaterial_rendermaterial [EXTRACTED 1.00]
-- **Engine Application Lifecycle Subsystem (Ch23-26)** — engine_engine, application_application, uimanager_uimanager, glfwmanager_glfwmanager, input_input, event_event, event_eventdispatcher [EXTRACTED 0.95]
-- **Shadow Mapping Pipeline (Ch27-29)** — framebuffer_framebuffer, texture_texture, renderer_renderer, shader_shader [EXTRACTED 0.90]
-- **IBL and Cubemap Pipeline (Ch31, Ch38)** — cubemaputils_cubemaputils, texture_texture, commons_textureslots [INFERRED 0.80]
-- **PBR Pipeline: Theory, Implementation, IBL** — ch36_pbr_theory, ch37_pbr_implementation, ch38_image_based_lighting, shader_shader, shader_setmatrix3fv [INFERRED 0.90]
-- **Cubemap and Skybox: HDR Loading, Cubemap Texture, Skybox Rendering** — ch30_cubemaps_and_hdr, ch31_skybox_rendering, texture_hdr_constructor, texture_cubemap_constructor [INFERRED 0.90]
-- **Buffer Classes: VAO, VBO, Layout** — vertexarray_vertexarray, vertexbuffer_vertexbuffer, vertexbufferlayout_vertexbufferlayout, ch09_buffer_classes [EXTRACTED 1.00]
-- **Post-Processing: HDR Pipeline, Bloom, Color Grading** — ch39_hdr_pipeline, ch40_bloom, ch41_color_grading, bloom_bloom, texture3d_texture3d, texture_createneutrallut3d [INFERRED 0.85]
-- **Material and Render Path: MaterialFactory, ForwardRenderPath** — materialfactory_materialfactory, forwardrenderpatch_forwardrenderpatch, ch42_material_system, ch43_forward_rendering_strategy, shader_shader [INFERRED 0.85]
-- **Material System Class Hierarchy (Ch42)** — rendermaterial_rendermaterial, pbrmaterial_pbrmaterial, unlitmaterial_unlitmaterial, materialparameter_materialparametervalue, textureslot_textureslot [EXTRACTED 1.00]
-- **SceneRenderer Pipeline Components (Ch43)** — scenerenderer_scenerenderer, shadowpass_shadowpass, renderpath_renderpath, postprocesspipeline_postprocesspipeline, renderpassdata_renderpassdata, scenerenderer_forwardrenderpath [EXTRACTED 1.00]
-- **Post-Processing Pipeline: Bloom → Tone Mapping → Color Grading** — ch40_bloom, ch41_color_grading, postprocesspipeline_postprocesspipeline [INFERRED 0.90]
-- **RenderPassData Shared Structs (Ch43)** — renderpassdata_renderpassdata, renderpassdata_shadowdata, renderpassdata_prepassoutput, renderpassdata_renderpathtype [EXTRACTED 1.00]
+- **PBR Rendering Stack** — a_reference_cook_torrance_brdf, a_reference_ibl, a_reference_hdr_pipeline, a_reference_tone_mapping, a_reference_pbrmaterial, a_reference_shader_defaultlit [INFERRED 0.90]
+- **SceneRenderer Pass Pipeline** — a_reference_scenerenderer, a_reference_shadowpass, a_reference_renderpath, a_reference_forwardrenderpath, a_reference_postprocesspipeline [EXTRACTED 1.00]
+- **Material System (Ch42)** — a_reference_rendermaterial, a_reference_pbrmaterial, a_reference_unlitmaterial, a_reference_materialfactory, a_reference_materialparameter [EXTRACTED 1.00]
+- **OpenGL Buffer Pipeline** — a_reference_vertexbuffer, a_reference_indexbuffer, a_reference_vertexarray, a_reference_vertexbufferlayout [EXTRACTED 1.00]
+- **IBL Generation Pipeline** — a_reference_cubemaputils, a_reference_shader_equirect_to_cube, a_reference_shader_irradiance_convolution, a_reference_shader_prefilter, a_reference_shader_brdf [EXTRACTED 1.00]
+- **Post-Processing Stack** — a_reference_bloom, a_reference_tone_mapping, a_reference_color_grading, a_reference_postprocesspipeline, a_reference_fullscreenquad [EXTRACTED 1.00]
+- **PBR Rendering Stack** — a_reference_cook_torrance_brdf, a_reference_ibl, a_reference_hdr_pipeline, a_reference_tone_mapping, a_reference_pbrmaterial, a_reference_shader_defaultlit [INFERRED 0.90]
+- **SceneRenderer Pass Pipeline** — a_reference_scenerenderer, a_reference_shadowpass, a_reference_renderpath, a_reference_forwardrenderpath, a_reference_postprocesspipeline [EXTRACTED 1.00]
+- **Material System (Ch42)** — a_reference_rendermaterial, a_reference_pbrmaterial, a_reference_unlitmaterial, a_reference_materialfactory, a_reference_materialparameter [EXTRACTED 1.00]
+- **OpenGL Buffer Pipeline** — a_reference_vertexbuffer, a_reference_indexbuffer, a_reference_vertexarray, a_reference_vertexbufferlayout [EXTRACTED 1.00]
+- **IBL Generation Pipeline** — a_reference_cubemaputils, a_reference_shader_equirect_to_cube, a_reference_shader_irradiance_convolution, a_reference_shader_prefilter, a_reference_shader_brdf [EXTRACTED 1.00]
+- **Post-Processing Stack** — a_reference_bloom, a_reference_tone_mapping, a_reference_color_grading, a_reference_postprocesspipeline, a_reference_fullscreenquad [EXTRACTED 1.00]
+- **PBR Rendering Stack** — a_reference_cook_torrance_brdf, a_reference_ibl, a_reference_hdr_pipeline, a_reference_tone_mapping, a_reference_pbrmaterial, a_reference_shader_defaultlit [INFERRED 0.90]
+- **SceneRenderer Pass Pipeline** — a_reference_scenerenderer, a_reference_shadowpass, a_reference_renderpath, a_reference_forwardrenderpath, a_reference_postprocesspipeline [EXTRACTED 1.00]
+- **Material System (Ch42)** — a_reference_rendermaterial, a_reference_pbrmaterial, a_reference_unlitmaterial, a_reference_materialfactory, a_reference_materialparameter [EXTRACTED 1.00]
+- **OpenGL Buffer Pipeline** — a_reference_vertexbuffer, a_reference_indexbuffer, a_reference_vertexarray, a_reference_vertexbufferlayout [EXTRACTED 1.00]
+- **IBL Generation Pipeline** — a_reference_cubemaputils, a_reference_shader_equirect_to_cube, a_reference_shader_irradiance_convolution, a_reference_shader_prefilter, a_reference_shader_brdf [EXTRACTED 1.00]
+- **Post-Processing Stack** — a_reference_bloom, a_reference_tone_mapping, a_reference_color_grading, a_reference_postprocesspipeline, a_reference_fullscreenquad [EXTRACTED 1.00]
 
 ## Communities
 
 ### Community 0 - "Core Rendering Concepts (Docs Overview)"
 Cohesion: 0.03
-Nodes (107): Application (OnEvent virtual method), WindowCloseEvent, WindowFocusEvent, WindowResizeEvent, Application Lifecycle Hooks (OnCreate, OnUpdate, OnRender, OnDestroy), Monolithic-to-Separated Architecture Evolution, Rationale: Build Monolithic First, Then Refactor, CMake Auto-Update Submodules at Configure Time (+99 more)
-
-### Community 1 - "Appendix A: Chapter Cross-References (Ch08-Ch20)"
-Cohesion: 0.04
-Nodes (101): Combined Shader File Format (#shader markers), Rationale: Shader Constructor Throws on Failure (RAII), Rationale: Cache Uniform Locations to Avoid Repeated GPU Queries, Chapter 10: Shader and Renderer, Shader Compilation Error Reporting, Shader RAII and Move Semantics, Chapter 10: Shader System, Uniform Location Caching (unordered_map) (+93 more)
-
-### Community 2 - "Engine Architecture Foundations"
-Cohesion: 0.03
 Nodes (82): Blinn-Phong Lighting, Bloom, Ch08: RAII & Resource Management, Ch09: Buffer Classes, Ch10: Shader & Renderer, Ch13: Transform & Mesh, Ch15: Scene Management, Ch17: Lighting (+74 more)
 
+### Community 1 - "Appendix A: Chapter Cross-References (Ch08-Ch20)"
+Cohesion: 0.06
+Nodes (29): Roughness to Shininess Mapping, Cook-Torrance BRDF, Fresnel-Schlick Approximation, GGX Normal Distribution Function, Metallic-Roughness Material Workflow, Energy Conservation Implementation, F0 Metallic Workflow, PBRMaterial Class Integration (+21 more)
+
+### Community 2 - "Engine Architecture Foundations"
+Cohesion: 0.06
+Nodes (38): CPU-GPU Memory Divide and Data Transfer Cost, GLSL Vertex and Fragment Shaders, OpenGL Graphics Pipeline (Vertex → Fragment → Framebuffer), MVP Matrix and Coordinate Space Transformations, Chapter 7: OpenGL Fundamentals, OpenGL State Machine (Bind Before Use), Rationale: Upload Data to GPU Once to Minimize Transfer Cost, Uniforms: Passing Data from C++ to Shaders (+30 more)
+
 ### Community 3 - "Advanced Rendering: PBR + IBL + Color Grading"
-Cohesion: 0.05
-Nodes (44): Bloom (C++ class), Chapter 40: Bloom Post-Processing, Bloom Theory: Physical Basis (Lens Scatter), Downsampling Strategy for Bloom Performance, Separable Gaussian Blur (5-tap Kernel), Ping-Pong Framebuffer Pattern for Multi-Pass Blur, Post-Processing Pipeline Architecture (Ch40), Rationale: Bloom Operates in HDR Space Before Tone Mapping (+36 more)
+Cohesion: 0.06
+Nodes (42): Application(), Application Lifecycle Hooks (OnCreate, OnUpdate, OnRender, OnDestroy), Monolithic-to-Separated Architecture Evolution, Book Structure and Parts Overview, Chapter 0: Introduction, OpenGL Pipeline Overview (Buffers, Shaders, Textures), Prerequisites: Windows, Visual Studio 2022, CMake, Git, Rationale: Build Monolithic First, Then Refactor (+34 more)
 
 ### Community 4 - "Physically Based Rendering Pipeline"
-Cohesion: 0.05
-Nodes (64): Chapter 12: Renderer Class, Mesh Factory Methods (CreateCube, CreatePlane, CreatePyramid), Mesh Internal Buffers via unique_ptr (RAII Ownership), Rationale: Rotation Stored in Radians Internally for GLM Compatibility, Rationale: vec4 Position for Correct Matrix Multiplication in Homogeneous Space, Chapter 13: Transform & Mesh, Transform: Position/Rotation/Scale → Model Matrix (TRS Order), Vertex Struct with vec4 Position (Homogeneous Coordinates) (+56 more)
+Cohesion: 0.06
+Nodes (22): Viewport Management, Viewport Stack for Multi-Pass Rendering, Depth Comparison in Shader, GL_LEQUAL Depth Function for Skybox, Disable Depth Mask for Skybox, Depth Test Functions, Depth Mask Control, Face Culling (+14 more)
 
 ### Community 5 - "Shader & Framebuffer System"
-Cohesion: 0.08
-Nodes (33): VBO, IBO, and VAO Buffer Types, Delete Copy Operations, Allow Move Operations for OpenGL Wrappers, Move Semantics: Ownership Transfer via std::move, Null-After-Move: Set m_ID to 0 to Prevent Double-Delete, RAII Pattern: Constructor Acquires, Destructor Releases, Chapter 8: RAII & Resource Management, Rationale: Delete Copy Because GPU Resources Cannot be Cheaply Duplicated, Rationale: noexcept on Move Operations for std::vector Optimization (+25 more)
+Cohesion: 0.07
+Nodes (29): Mipmap Generation, Texture Filtering Modes, OpenGL Texture Slots, Texture Wrapping Modes, Texture State Management, Embedded vs External glTF Texture Loading, Texture Cache in ModelLoader, Empty Texture for FBO (+21 more)
 
 ### Community 6 - "Scene Architecture + Advanced Render Chapters"
-Cohesion: 0.08
-Nodes (35): Object Inspector Panel (Transform + Appearance via ImGui), Blinn-Phong Illumination Model (Ambient + Diffuse + Specular), defaultlit.shader (Blinn-Phong lit GLSL shader), Chapter 17: Lighting, In-Shader Normal Matrix Computation (transpose(inverse(u_Model))), Rationale: In-Shader Normal Matrix OK for Learning, Precompute in Ch37, Rationale: u_Roughness Uniform Stays Unchanged When Upgrading to PBR in Ch37, Roughness-to-Shininess Conversion (mix(256, 8, roughness) in shader) (+27 more)
+Cohesion: 0.07
+Nodes (23): Bloom(), Process(), Exposure Control and Auto-Adaptation, FullscreenQuad for Post-Processing, Post-Process Pipeline, Tone Mapping Operators, Two-Pass HDR Rendering, Bloom Class (Encapsulated Pipeline) (+15 more)
 
 ### Community 7 - "Appendix + Advanced Rendering Chapters"
 Cohesion: 0.09
-Nodes (35): Camera (C++ class), GetForward(), GetRight(), GetUp(), Move(), MoveForward(), MoveRight(), MoveUp() (+27 more)
+Nodes (25): Framebuffer RAII Design, Texture Lifetime Management, Framebuffer-Based Cubemap Baking, Combined Depth-Stencil FBO Attachment, Blending Equation, Two-Pass Opaque/Transparent Rendering, HDR Framebuffer (RGB16F), HDR Framebuffer Integration for Bloom (+17 more)
 
 ### Community 8 - "Renderer Command API"
-Cohesion: 0.07
-Nodes (12): Chapter 16: Dear ImGui, ImGui Docking Enable (ImGuiConfigFlags_DockingEnable), Immediate-Mode GUI (ImGui paradigm), Rationale: Direct ImGui Calls Inside DLL (DLL Boundary Issue Noted), Rationale: Non-Static UIManager Class (Constructor-Based Init), UIManager Lifecycle: BeginFrame / EndFrame / Render, Rationale: UIManager Wrappers to Avoid DLL ImGui Context Split, UIManager DLL-Safe ImGui Wrappers (+4 more)
+Cohesion: 0.08
+Nodes (18): Framebuffer Resize Callback (FramebufferSizeCallback), GLFWManager GLFW Encapsulation, OpenGL Debug Output (GL_DEBUG_OUTPUT), VizEngine/OpenGL Subdirectory Structure, Rationale: GLFWManager Constructor Does All Initialization (No Separate Init), Rationale: Game Loop Ownership in Application::Run (Future Engine Class), Chapter 6: Window & Context, Input::Init and Window Binding (+10 more)
 
 ### Community 9 - "HDR + Post-Processing Pipeline"
-Cohesion: 0.07
-Nodes (0): 
+Cohesion: 0.08
+Nodes (29): Camera, Screen and Depth Buffer Clear, Centralized Draw Call Abstraction, Renderer Class, Homogeneous Coordinates (vec4 Position), Mesh Class, Vertex Data Structure, Dual Material Approach (+21 more)
 
 ### Community 10 - "PBRMaterial Class API"
-Cohesion: 0.08
-Nodes (0): 
+Cohesion: 0.1
+Nodes (24): Combined Shader File Format, Shader Compilation and Linking, Shader Compile Error Reporting, Shader File Parsing, Uniform Location Caching, Uniform Setter Methods, Scene Object Lifecycle, Scene Render Loop (+16 more)
 
 ### Community 11 - "Engine Architecture & Future Roadmap"
+Cohesion: 0.08
+Nodes (11): ImGui Frame Lifecycle, Dear ImGui Integration, Common ImGui Widgets, StartWindow/EndWindow Panel API, UIManager Wrapper Class, Init(), Render(), Shutdown() (+3 more)
+
+### Community 12 - "Application & Event System Docs"
+Cohesion: 0.09
+Nodes (23): Camera(), VizEngine_API Export/Import Macros (dllexport/dllimport), Shader RAII and Move Semantics, Shader System, stb_image Vendor Integration, Texture RAII and Move Semantics, Texture System, Camera Class (+15 more)
+
+### Community 13 - "ImGui UI Layer"
+Cohesion: 0.15
+Nodes (22): GetForward(), GetRight(), GetUp(), Move(), MoveForward(), MoveRight(), MoveUp(), RecalculateProjectionMatrix() (+14 more)
+
+### Community 14 - "Lighting & Post-Processing Chapters (A_Reference)"
 Cohesion: 0.09
 Nodes (23): D3D12 (Modern API Concepts), Entity-Component System Architecture, EnTT (Entity-Component System Library), Checkpoint (First-Person Puzzle Game), Dear ImGui (GUI Library), Jolt Physics Library, Layered Architecture (Educational/Rendering/Production), miniaudio (Audio Library) (+15 more)
 
-### Community 12 - "Application & Event System Docs"
-Cohesion: 0.17
-Nodes (19): Application, Camera, Image-Based Lighting Pipeline, 3D LUT Color Grading, CubemapUtils, Engine, ErrorHandling, Framebuffer (+11 more)
+### Community 15 - "Mesh & Geometry System"
+Cohesion: 0.13
+Nodes (22): Application, CubemapUtils Class, Image-Based Lighting (IBL) Overview, 3D Look-Up Table (LUT), Color Grading in LDR Space, Image-Based Lighting Pipeline, 3D LUT Color Grading, CubemapUtils (+14 more)
 
-### Community 13 - "ImGui UI Layer"
-Cohesion: 0.21
-Nodes (13): CheckCompileErrors(), CompileShader(), CreateShader(), GetUniformLocation(), SetBool(), SetColor(), SetFloat(), SetInt() (+5 more)
+### Community 16 - "Input & Event System Code"
+Cohesion: 0.09
+Nodes (21): glTF Accessor/BufferView/Buffer Hierarchy, GetBufferData Accessor Pattern, glTF Format Overview, TinyGLTF Single Compilation Unit, TinyGLTF Vendor Integration, Pimpl/Inner Class Loader Pattern, Typed Bounds-Checked Accessor Reading, GetMaterialForMesh Accessor (+13 more)
 
-### Community 14 - "Lighting & Post-Processing Chapters (A_Reference)"
+### Community 17 - "GLFW Window & Input Callbacks"
+Cohesion: 0.11
+Nodes (11): SetRotation(), Edge Detection (Pressed vs Held vs Released), Input Update/EndFrame Lifecycle, Mouse Delta with First-Frame Guard, Static Input API Design, Right-Click Mouse Look, OnUpdate Camera Controller Integration, GetMouseDelta() (+3 more)
+
+### Community 18 - "Camera System"
+Cohesion: 0.16
+Nodes (17): Blinn-Phong Illumination Model, DirectionalLight Struct, Framebuffer Attachments, Render-to-Texture Workflow, Viewport Management, Light-Space Matrix, Orthographic Light Projection, Two-Pass Rendering (+9 more)
+
+### Community 19 - "RenderMaterial Class API"
+Cohesion: 0.18
+Nodes (13): Single Bind() Call Pattern, Separation: Material vs Renderer Responsibilities, UploadParameters via std::visit, Bind(), BindTextures(), SetBool(), SetFloat(), SetInt() (+5 more)
+
+### Community 20 - "Entity-Component System Concept"
+Cohesion: 0.16
+Nodes (14): Engine Owns the Game Loop, Exception-Safe Game Loop, Subsystem Accessor Pattern with Assert, CreateApplication Factory Function, Event Base Class, Event Flow Pipeline, Event Propagation and Handled Flag, FPS and Delta Time Tracking (+6 more)
+
+### Community 21 - "Model Loading System"
 Cohesion: 0.21
 Nodes (16): Active Component, AIBehavior Component, Color Component, Health Component, Mesh Component, PlayerInput Component, Transform Component, Current Approach (SceneObject-Based) (+8 more)
 
-### Community 15 - "Mesh & Geometry System"
-Cohesion: 0.19
-Nodes (15): BRDF (Bidirectional Reflectance Distribution Function), Cook-Torrance BRDF, Energy Conservation (kS + kD <= 1), Fresnel-Schlick Approximation, Smith Geometry Function (Schlick-GGX), GGX/Trowbridge-Reitz Normal Distribution Function, Lambertian Diffuse (albedo / pi), Metallic-Roughness Material Workflow (+7 more)
+### Community 22 - "Input Polling System"
+Cohesion: 0.14
+Nodes (14): Equirectangular-to-Cubemap Conversion, IBL Foundation, Environment Reflections Preview, BRDF Integration LUT, IBL Generation Startup Cost, Irradiance Map (Diffuse IBL), Pre-filtered Environment Map (Specular IBL), EquirectangularToCubemap() (+6 more)
 
-### Community 16 - "Input & Event System Code"
-Cohesion: 0.17
+### Community 23 - "SceneRenderer Class API"
+Cohesion: 0.19
 Nodes (7): EndsWith(), GetDirectory(), GetFilename(), Model::ModelLoader, ModelLoader::Load(), ModelLoader::LoadMeshes(), ValidateAttributeBuffer()
 
-### Community 17 - "GLFW Window & Input Callbacks"
-Cohesion: 0.23
-Nodes (9): Bind(), BindTextures(), SetBool(), SetFloat(), SetInt(), SetVec2(), SetVec3(), SetVec4() (+1 more)
+### Community 24 - "RAII Resource Management Pattern"
+Cohesion: 0.24
+Nodes (10): Optional Attribute Safe Fallbacks, ComputeTangents Algorithm, glTF TANGENT Attribute Loading, Gram-Schmidt Orthogonalization, Chapter 34: Normal Mapping, ComputeTangents(), CreateCube(), CreatePlane() (+2 more)
 
-### Community 18 - "Camera System"
-Cohesion: 0.14
-Nodes (0): 
+### Community 25 - "MaterialFactory API"
+Cohesion: 0.3
+Nodes (10): MaterialFactory, CreateChrome(), CreateCopper(), CreateGold(), CreatePBR(), CreatePlastic(), CreateUnlit(), GetDefaultPBRShader() (+2 more)
 
-### Community 19 - "RenderMaterial Class API"
+### Community 26 - "Shared Mesh Architecture"
 Cohesion: 0.36
 Nodes (11): Acquire Resource, Bind(), Draw(), SetData(), Constructor, Destructor, glDeleteBuffers(), glGenBuffers(), Object Lifetime, RAII Lifecycle (+3 more)
 
-### Community 20 - "Entity-Component System Concept"
-Cohesion: 0.33
-Nodes (8): CreateChrome(), CreateCopper(), CreateGold(), CreatePBR(), CreatePlastic(), CreateUnlit(), GetDefaultPBRShader(), GetDefaultUnlitShader()
+### Community 27 - "Normal Vectors & Shading"
+Cohesion: 0.27
+Nodes (10): VP_CORE_ASSERT and VP_ASSERT Debug Assertions, Cross-Platform VP_DEBUG_BREAK Macro, Dual Logger Separation (Core vs Client), VP_CORE_* and VP_* Logging Macros, Chapter 5: Logging System, Rationale: Assertions Stripped in Release (NDEBUG), Rationale: Replace std::cout with spdlog, spdlog Library Integration (+2 more)
 
-### Community 21 - "Model Loading System"
+### Community 28 - "Diffuse Lighting Fundamentals"
+Cohesion: 0.24
+Nodes (8): glDrawElementsInstanced, glVertexAttribDivisor, GPU Instancing, mat4 Split Across 4 Attribute Locations, DrawInstanced(), Bind(), LinkInstanceBuffer(), LinkVertexBuffer()
+
+### Community 29 - "ForwardRenderPath API"
 Cohesion: 0.42
 Nodes (10): Scene, SceneObject 1 (Transform A, pos: 0,0,0), SceneObject 2 (Transform B, pos: 5,0,0), SceneObject 3 (Transform C, pos: -5,0,0), Mesh (Shared, GPU: 1 copy of geometry), Shared Mesh Architecture, shared_ptr (shared ownership mechanism), Transform A (+2 more)
 
-### Community 22 - "Input Polling System"
+### Community 30 - "Engine Dependencies"
 Cohesion: 0.29
 Nodes (10): Averaged Normal at Shared Vertex, Face Normals, Flat Shading, Normal Interpolation, Per-Face Normal, Shared Vertex, Sharp Edge Artifact, Smooth Gradient Shading (+2 more)
 
-### Community 23 - "SceneRenderer Class API"
+### Community 31 - "UV Coordinate System"
 Cohesion: 0.36
 Nodes (10): Angle of Incidence, Diffuse Surface Brightness, Diffuse Lighting Model, Dot Product dot(N, L), Lambertian Diffuse Reflectance, Lambert's Cosine Law, Light Direction (L), Oblique Light Incidence at 45 Degrees (dot(N,L)=0.7, Dimmer) (+2 more)
 
-### Community 24 - "RAII Resource Management Pattern"
-Cohesion: 0.33
-Nodes (5): Execute(), RenderInstancedObject(), RenderSceneObjects(), RenderSingleObject(), SetupLighting()
+### Community 32 - "OpenGL Pipeline Stages"
+Cohesion: 0.22
+Nodes (9): MVP Matrix Uniform, Euler Angle Rotation in Radians, Model Matrix Construction (TRS Order), Transform Struct, View-Projection Matrix Composition, MVP Uniform Binding in Scene, Shader Transition: Unlit to Lit, SetMatrix4fv() (+1 more)
 
-### Community 25 - "MaterialFactory API"
+### Community 33 - "Blinn-Phong Lighting Model"
 Cohesion: 0.53
 Nodes (9): GLAD, GLFW, GLM, GUI (Dear ImGui), OpenGL Abstractions, Operating System / GPU Driver, spdlog, stb_image (+1 more)
 
-### Community 26 - "Shared Mesh Architecture"
+### Community 34 - "Lighting Necessity Visualization"
 Cohesion: 0.42
 Nodes (9): Normalized UV Range [0.0, 1.0], UV Origin (0,0), Texture Mapping, Texture Region A (Upper-Left, Brown), Texture Region B (Lower-Right, Blue), U Axis (Horizontal Texture Coordinate), UV Coordinate System, UV Texture Space (+1 more)
 
-### Community 27 - "Normal Vectors & Shading"
+### Community 35 - "Surface Normal Concepts"
+Cohesion: 0.25
+Nodes (2): UnlitMaterial Class, UnlitMaterial()
+
+### Community 36 - "UV Checker Texture Asset"
 Cohesion: 0.39
 Nodes (8): Alternating Light/Dark Checkerboard Pattern, Grayscale Color Palette (no hue information), UV Checker Texture, Texture Coordinate Validation Tool, Texture Mapping Debug Asset, Per-Tile UV Coordinate Label (column,row format), UV Coordinate Grid (10x10), UV Orientation Arrow (upward, indicating V-axis direction)
 
-### Community 28 - "Diffuse Lighting Fundamentals"
+### Community 37 - "Application Core"
 Cohesion: 0.46
 Nodes (8): Fixed Pipeline Stage, Fragment Shader, Framebuffer, OpenGL Graphics Pipeline, Programmable Pipeline Stage, Rasterization, Vertex Data, Vertex Shader
 
-### Community 29 - "ForwardRenderPath API"
+### Community 38 - "UnlitMaterial Class API"
 Cohesion: 0.43
 Nodes (8): Ambient Lighting Component, Angle-Based Shading (Diffuse Property), Blinn-Phong Lighting Model, Constant Illumination (Ambient Property), Diffuse Lighting Component, Final Combined Lighting Result, Specular Lighting Component, Specular Highlight (Highlight Property)
 
-### Community 30 - "Engine Dependencies"
+### Community 39 - "Scene Data Model"
 Cohesion: 0.46
 Nodes (8): Cube 3D Object, Loss of Depth Perception, Flat Shading, Loss of Form/Shape Definition, Lighting Necessity for 3D Depth Cues, No Lighting Mode, Pyramid 3D Object, Uniform Surface Color
 
-### Community 31 - "UV Coordinate System"
+### Community 40 - "PBR BRDF Theory"
 Cohesion: 0.39
 Nodes (8): Lighting Calculation, Normal Vector (N), Perpendicular Orientation to Surface, Shading Model, Surface Geometry, Surface Normal, Vertex, Vertex Attribute (Per-Vertex Normal)
 
-### Community 32 - "OpenGL Pipeline Stages"
+### Community 41 - "OpenGL Initialization Sequence"
 Cohesion: 0.67
 Nodes (7): gladLoadGL(), glfwCreateWindow(), glfwInit(), glfwMakeContextCurrent(), GLFW/OpenGL Initialization Sequence, Ready (Initialization Complete), Window Hints
 
-### Community 33 - "Blinn-Phong Lighting Model"
+### Community 42 - "Texture Mapping Concept"
 Cohesion: 0.52
 Nodes (7): 3D Object (Textured), Brick Texture (Sample Texture), Texture (2D Image), Texture Mapping, Texture Sampling, UV Coordinates, UV Map
 
-### Community 34 - "Lighting Necessity Visualization"
+### Community 43 - "Blinn-Phong Specular Model"
 Cohesion: 0.57
 Nodes (7): Blinn-Phong Specular Model, Half Vector (H), Light Vector (L), Half Vector Formula: H = normalize(L + V), Surface Normal (N), Surface Point (Origin), View Vector (V)
 
-### Community 35 - "Surface Normal Concepts"
-Cohesion: 0.53
-Nodes (4): Init(), OnEvent(), Run(), Shutdown()
-
-### Community 36 - "UV Checker Texture Asset"
+### Community 44 - "Engine Singleton Class"
 Cohesion: 0.33
 Nodes (6): Ch03: Project Structure, Ch05: Logging System, GLFW (library), GLM (library), spdlog (library), Log
 
-### Community 37 - "Application Core"
+### Community 45 - "Game Loop Architecture"
 Cohesion: 0.73
 Nodes (6): Game Loop, Input Phase, Quit Condition, Render Phase, Update Phase, While Loop Condition (!quit)
 
-### Community 38 - "UnlitMaterial Class API"
+### Community 46 - "Project Setup & Dependencies (A_Reference)"
+Cohesion: 0.5
+Nodes (4): Skybox Class Design, Skybox Cube Mesh Setup, SetupMesh(), Skybox()
+
+### Community 47 - "Logging System"
 Cohesion: 0.8
 Nodes (4): EnumToLogLevel(), Init(), SetClientLogLevel(), SetCoreLogLevel()
 
-### Community 39 - "Scene Data Model"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 40 - "PBR BRDF Theory"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 41 - "OpenGL Initialization Sequence"
-Cohesion: 0.6
-Nodes (5): VizPsyche Docs Build System (build.py), Eisvogel Pandoc LaTeX Template, MiKTeX (LaTeX / PDF Generation), Pandoc (Document Conversion Tool), VizPsyche Book (Documentation Project)
-
-### Community 42 - "Texture Mapping Concept"
+### Community 48 - "Scene Management"
 Cohesion: 0.8
 Nodes (5): Back Buffer, Display, Front Buffer, glfwSwapBuffers(), Double Buffering
 
-### Community 43 - "Blinn-Phong Specular Model"
+### Community 49 - "CubemapUtils & IBL Generation"
+Cohesion: 0.6
+Nodes (5): VizPsyche Docs Build System (build.py), Eisvogel Pandoc LaTeX Template, MiKTeX (LaTeX / PDF Generation), Pandoc (Document Conversion Tool), VizPsyche Book (Documentation Project)
+
+### Community 50 - "Documentation Build System"
+Cohesion: 0.4
+Nodes (5): Application Events, Keyboard Events, Engine Stats Panel, KeyPressedEvent, WindowResizeEvent
+
+### Community 51 - "Framebuffer System Docs"
+Cohesion: 0.5
+Nodes (4): EventDispatcher Template, Handler Return Convention, ImGui Event Capture, EventDispatcher (template dispatcher)
+
+### Community 52 - "Double Buffering"
 Cohesion: 0.67
 Nodes (4): Ch11: Textures, Ch30: Cubemaps and HDR, stb_image (library), Texture
 
-### Community 44 - "Engine Singleton Class"
+### Community 53 - "Post-Process Pipeline Core"
+Cohesion: 0.5
+Nodes (4): OpenGL State Management Pattern, Polygon Offset for Acne, Renderer DLL State Wrapping, EnableDepthTest()
+
+### Community 54 - "Shadow Pass API"
 Cohesion: 0.67
 Nodes (4): Placeholder Texture Asset, Hello Texture (Blank White PNG), Texture Loading Pipeline, VizEngine Graphics Engine
 
-### Community 45 - "Game Loop Architecture"
-Cohesion: 0.67
-Nodes (3): VizEngine_API Export/Import Macros (dllexport/dllimport), Core.h (VizEngine_API macro), VizEngine_API (dllexport/dllimport macro)
+### Community 55 - "glTF Format Concepts"
+Cohesion: 0.5
+Nodes (4): Tangent Space (TBN), TBN Matrix Construction, Vertex Stride Extension to 19 Floats, Vertex (struct)
 
-### Community 46 - "Project Setup & Dependencies (A_Reference)"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 47 - "Logging System"
+### Community 56 - "Texture Asset Placeholders"
 Cohesion: 0.67
 Nodes (3): Ch25: Event System, Event System, EventDispatcher
 
-### Community 48 - "Scene Management"
+### Community 57 - "Error Handling System"
 Cohesion: 1.0
 Nodes (3): Ch16: Dear ImGui, Dear ImGui (library), UIManager
 
-### Community 49 - "CubemapUtils & IBL Generation"
-Cohesion: 2.0
-Nodes (2): Chapter 43: Forward Rendering Strategy, ForwardRenderPath
-
-### Community 50 - "Documentation Build System"
-Cohesion: 1.0
+### Community 58 - "Entry Point"
+Cohesion: 0.67
 Nodes (0): 
 
-### Community 51 - "Framebuffer System Docs"
-Cohesion: 1.0
-Nodes (0): 
+### Community 59 - "Material Bind"
+Cohesion: 0.67
+Nodes (3): Chapter 42: Material System, MaterialParameterValue (variant type alias), TextureSlot (struct)
 
-### Community 52 - "Double Buffering"
+### Community 60 - "DLL Export Macro"
+Cohesion: 1.0
+Nodes (2): PointLight with Attenuation, PointLight (positional light with attenuation)
+
+### Community 61 - "Camera Controller & Delta Time"
+Cohesion: 1.0
+Nodes (2): UV Texture Coordinates, Vertical Flip for OpenGL Origin
+
+### Community 62 - "Texture Filtering"
 Cohesion: 1.0
 Nodes (2): VizPsyche Engine (Ch0-43), Singleton Pattern
 
-### Community 53 - "Post-Process Pipeline Core"
-Cohesion: 1.0
-Nodes (2): Ch21: Input System, Input
-
-### Community 54 - "Shadow Pass API"
+### Community 63 - "Shadow Map Texture Config"
 Cohesion: 1.0
 Nodes (2): Ch02: OpenGL Loading (GLAD), GLAD (library)
 
-### Community 55 - "glTF Format Concepts"
+### Community 64 - "Alpha Channel Design"
 Cohesion: 1.0
 Nodes (2): Ch06: Window & Context, GLFWManager
 
-### Community 56 - "Texture Asset Placeholders"
+### Community 65 - "Input System Hook"
 Cohesion: 1.0
 Nodes (2): Camera, Ch14: Camera System
 
+### Community 66 - "Error Handling Hook"
+Cohesion: 1.0
+Nodes (2): Ch21: Input System, Input
+
+### Community 67 - "Singleton Pattern"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 68 - "Window & Context (A_Reference)"
+Cohesion: 1.0
+Nodes (0): 
+
 ## Knowledge Gaps
-- **187 isolated node(s):** `Book Structure and Parts Overview`, `OpenGL Pipeline Overview (Buffers, Shaders, Textures)`, `Visual Studio 2022 with C++ Workload`, `CMake 3.16+ Build System Setup`, `Git 2.30+ Version Control Setup` (+182 more)
+- **272 isolated node(s):** `PointLight (positional light with attenuation)`, `Book Structure and Parts Overview`, `OpenGL Pipeline Overview (Buffers, Shaders, Textures)`, `Visual Studio 2022 with C++ Workload`, `CMake 3.16+ Build System Setup` (+267 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `CubemapUtils & IBL Generation`** (2 nodes): `Chapter 43: Forward Rendering Strategy`, `ForwardRenderPath`
+- **Thin community `DLL Export Macro`** (2 nodes): `PointLight with Attenuation`, `PointLight (positional light with attenuation)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Documentation Build System`** (2 nodes): `main()`, `EntryPoint.h`
+- **Thin community `Camera Controller & Delta Time`** (2 nodes): `UV Texture Coordinates`, `Vertical Flip for OpenGL Origin`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Framebuffer System Docs`** (2 nodes): `Bind()`, `Material.cpp`
+- **Thin community `Texture Filtering`** (2 nodes): `VizPsyche Engine (Ch0-43)`, `Singleton Pattern`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Double Buffering`** (2 nodes): `VizPsyche Engine (Ch0-43)`, `Singleton Pattern`
+- **Thin community `Shadow Map Texture Config`** (2 nodes): `Ch02: OpenGL Loading (GLAD)`, `GLAD (library)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Post-Process Pipeline Core`** (2 nodes): `Ch21: Input System`, `Input`
+- **Thin community `Alpha Channel Design`** (2 nodes): `Ch06: Window & Context`, `GLFWManager`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Shadow Pass API`** (2 nodes): `Ch02: OpenGL Loading (GLAD)`, `GLAD (library)`
+- **Thin community `Input System Hook`** (2 nodes): `Camera`, `Ch14: Camera System`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `glTF Format Concepts`** (2 nodes): `Ch06: Window & Context`, `GLFWManager`
+- **Thin community `Error Handling Hook`** (2 nodes): `Ch21: Input System`, `Input`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Texture Asset Placeholders`** (2 nodes): `Camera`, `Ch14: Camera System`
+- **Thin community `Singleton Pattern`** (2 nodes): `main()`, `EntryPoint.h`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Window & Context (A_Reference)`** (2 nodes): `Bind()`, `Material.cpp`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
