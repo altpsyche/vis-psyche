@@ -101,6 +101,11 @@ COMMUNITY_LABELS = {
     64: "Alpha Channel Design",
     65: "Input System Hook",
     66: "Error Handling Hook",
+    67: "Singleton Pattern",
+    68: "Window & Context (A_Reference)",
+    69: "Input System (A_Reference)",
+    70: "Camera System (A_Reference)",
+    71: "OpenGL Loading / GLAD (A_Reference)",
 }
 
 # ── Load ──────────────────────────────────────────────────────────────────────
