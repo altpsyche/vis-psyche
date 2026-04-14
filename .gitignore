@@ -8,6 +8,9 @@
 # Semantic extraction cache — regenerable, noisy diffs, not source content
 graphify-out/cache/
 
+# Stale graphify output dirs from aborted runs anywhere except project root
+VizEngine/**/graphify-out/
+
 # Claude Code session data (user-specific)
 .claude/
 

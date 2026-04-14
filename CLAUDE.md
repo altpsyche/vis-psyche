@@ -4,11 +4,16 @@ Unified directed knowledge graph at `graphify-out/` covering engine source + doc
 Edge direction: `chapter → class` (doc teaches this class), `class → chapter` (header annotates chapter).
 Coverage gaps (code nodes with no doc edges) signal where documentation needs to catch up to the codebase.
 
+**CRITICAL: Always run graphify from the project root**
+The output directory is `graphify-out/` at the project root. Running from any subdirectory
+(e.g. `VizEngine/src/`) creates a stale directory there instead — breaking the graph.
+
 Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying **doc files**: run `/graphify VizEngine --directed --update`
-- After modifying **source files**: run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('VizEngine/src'))"`
+- Before answering architecture or codebase questions, read `graphify-out/GRAPH_REPORT.md` for god nodes and community structure
+- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files
+- After modifying **doc files**: run `/graphify VizEngine --directed --update` (from project root)
+- After modifying **source files**: run `python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('VizEngine/src'))"` (from project root)
+- If you see any `graphify-out/` directory appearing inside `VizEngine/`, delete it — it is a stale aborted run
 
 ## VizPsyche Engine Book
 
