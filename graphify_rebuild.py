@@ -106,6 +106,16 @@ COMMUNITY_LABELS = {
     69: "Input System (A_Reference)",
     70: "Camera System (A_Reference)",
     71: "OpenGL Loading / GLAD (A_Reference)",
+    72: "Camera Controller & Delta Time",
+    73: "Shadow Map Texture Wrap Config",
+    74: "Texture Filtering Rationale",
+    75: "Alpha Channel in ObjectColor",
+    76: "Engine Singleton & Book Overview",
+    77: "GLFW Window & Context",
+    78: "Camera System",
+    79: "OpenGL Loading / GLAD",
+    80: "Input System",
+    81: "DLL Export Macro (Chapter 4)",
 }
 
 # ── Load ──────────────────────────────────────────────────────────────────────
@@ -113,6 +123,13 @@ data = json.loads(Path("graphify-out/graph.json").read_text())
 hyperedges = data.get("hyperedges", [])
 G = json_graph.node_link_graph(data, edges="links")
 print(f"Loaded: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+
+# ── Remove known vendor files that slip through scope filters ─────────────────
+# glad.c lives in VizEngine/src but is vendored OpenGL loader code, not engine code
+vendor_files = {"glad.c"}
+vendor_nodes = [n for n, d in G.nodes(data=True)
+                if any(vf in (d.get("source_file") or "") for vf in vendor_files)]
+G.remove_nodes_from(vendor_nodes)
 
 # ── Clean namespace pseudo-nodes ──────────────────────────────────────────────
 viz_nodes = [n for n in G.nodes() if G.nodes[n].get("label", "") == "VizEngine()"]

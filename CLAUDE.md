@@ -7,24 +7,36 @@ Coverage gaps (code nodes with no doc edges) signal where documentation needs to
 **CRITICAL: Always run graphify from the project root.**
 Output lives at `graphify-out/` at the project root. Running from a subdirectory creates a stale directory there — breaking the graph.
 
-### Normal workflow (git hook handles code automatically)
+### Normal workflow
 
-A post-commit hook is installed. After every `git commit`:
-- **Code changes** → AST rebuild runs automatically, no LLM, no manual step needed.
-- **Doc changes** → hook does NOT run LLM extraction. Manually run after committing doc edits:
-  ```
-  /graphify VizEngine/docs/vis-psyche-docs --directed --update
-  ```
+**Code commits → hook runs automatically.**
+The post-commit hook:
+1. Runs AST on `VizEngine/src` (no LLM, no vendor files)
+2. Merges new code nodes into the existing `graphify-out/graph.json`, preserving all semantic + cross-type edges
+3. Re-clusters and re-applies community labels via `graphify_rebuild.py`
 
-**Do NOT run `/graphify VizEngine --directed --update`** — scans vendor dirs (GLFW, GLM, glad) and floods the pipeline. Always scope to `VizEngine/src` or `VizEngine/docs/vis-psyche-docs`.
+Cross-type edges (code ↔ doc) are preserved across every commit. No manual step needed for routine code changes.
 
-### After a large update (community labels shifted)
+**Doc changes → hook does NOT run LLM extraction.** After committing doc edits run:
+```
+/graphify VizEngine/docs/vis-psyche-docs --directed --update
+```
+Then run `python graphify_rebuild.py` to re-cluster.
 
-If communities look wrong or unnamed after an update, re-apply labels:
+**Adding new source files or wanting full semantic re-extraction:**
+```
+/graphify VizEngine/src --directed
+```
+(No `--update` — full run builds fresh semantic edges for all code files. Follow with `python graphify_rebuild.py`.)
+
+**Do NOT run `/graphify VizEngine --directed`** — scans vendor dirs (GLFW, GLM, glad) and floods the pipeline. Always scope to `VizEngine/src` or `VizEngine/docs/vis-psyche-docs`.
+
+### After community labels shift (new chapters or source files added)
+
 ```
 python graphify_rebuild.py
 ```
-`graphify_rebuild.py` at the project root contains the full community label dict (75 communities). It cleans pseudo-nodes, re-clusters, and regenerates all outputs. Update `COMMUNITY_LABELS` in that file when new chapters or source files add new communities.
+`graphify_rebuild.py` at the project root contains the full community label dict (82 communities). It cleans pseudo-nodes, boosts cross-type edge weights, re-clusters, and regenerates all outputs. When the script prints `WARNING: N communities have no label`, add entries to `COMMUNITY_LABELS` in that file and re-run.
 
 ### Reading the graph
 
