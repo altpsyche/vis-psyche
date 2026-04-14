@@ -216,8 +216,13 @@ namespace VizEngine
 		if (data.Lights && data.Lights->HasDirectionalLight())
 		{
 			const auto& dl = data.Lights->GetDirectionalLight();
+			shader.SetBool("u_UseDirLight", true);
 			shader.SetVec3("u_DirLightDirection", dl.GetDirection());
 			shader.SetVec3("u_DirLightColor", dl.Diffuse);
+		}
+		else
+		{
+			shader.SetBool("u_UseDirLight", false);
 		}
 
 		shader.SetVec3("u_ObjectColor", glm::vec3(obj.Color));
