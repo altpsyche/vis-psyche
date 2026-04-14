@@ -14,7 +14,7 @@ What it does:
   4. Boosts cross-type (code <-> doc) edge weights to encourage mixed communities
   5. Re-clusters with Leiden/Louvain
   6. Applies community labels from COMMUNITY_LABELS dict below
-  7. Saves graph.json, GRAPH_REPORT.md, graph.html
+  7. Saves graph.json, GRAPH_REPORT.md, graph.html, wiki/, obsidian/
 
 When to update COMMUNITY_LABELS:
   - After a large extraction that adds many new nodes (new chapters, new source files)
@@ -27,7 +27,8 @@ from networkx.readwrite import json_graph
 from graphify.cluster import cluster, score_all
 from graphify.analyze import god_nodes, surprising_connections, suggest_questions
 from graphify.report import generate
-from graphify.export import to_json, generate_html
+from graphify.export import to_json, generate_html, to_obsidian
+from graphify.wiki import to_wiki
 
 # ── Community labels ──────────────────────────────────────────────────────────
 # Update these when community IDs shift after a large extraction.
@@ -319,5 +320,28 @@ try:
     print("Saved: graphify-out/graph.html")
 except Exception as e:
     print(f"graph.html: {e}")
+
+try:
+    # Patch Path.write_text to default to utf-8 (Windows cp1252 can't encode arrows etc.)
+    from pathlib import Path as _Path
+    _orig_write_text = _Path.write_text
+    def _utf8_write_text(self, data, encoding=None, errors=None, newline=None):
+        return _orig_write_text(self, data, encoding or "utf-8", errors, newline)
+    _Path.write_text = _utf8_write_text
+
+    n = to_wiki(G, communities, "graphify-out/wiki", community_labels=community_labels,
+                cohesion=cohesion, god_nodes_data=god_node_list)
+    print(f"Saved: graphify-out/wiki/ ({n} files)")
+
+    _Path.write_text = _orig_write_text  # restore
+except Exception as e:
+    print(f"wiki: {e}")
+
+try:
+    n = to_obsidian(G, communities, "graphify-out/obsidian", community_labels=community_labels,
+                    cohesion=cohesion)
+    print(f"Saved: graphify-out/obsidian/ ({n} notes)")
+except Exception as e:
+    print(f"obsidian: {e}")
 
 print("\nDone.")

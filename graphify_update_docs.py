@@ -13,18 +13,19 @@ How it works:
   2. Loads existing graphify-out/graph.json
   3. Merges: new doc nodes replace old doc nodes with the same IDs;
      code nodes and their edges are untouched
-  4. Rebuilds graph and saves graph.json + GRAPH_REPORT.md + graph.html
+  4. Rebuilds graph and saves graph.json, GRAPH_REPORT.md, graph.html, wiki/, obsidian/
   5. Calls graphify_rebuild.py to re-cluster and re-apply community labels
 
 When to run:
   - After writing a brand-new chapter (Claude Code must first extract it —
     see CLAUDE.md for the doc extraction workflow)
+  - After new code classes are added via semantic extraction
   - After graphify_rebuild.py loses doc coverage for any reason
   - To verify doc coverage is up to date without a full re-extraction
 
 When NOT to run:
-  - For code changes (the git hook handles those automatically)
-  - Instead of graphify_rebuild.py for routine re-clustering (use that directly)
+  - For routine source-only changes with no new classes (use graphify_rebuild.py directly)
+  - Instead of graphify_rebuild.py for re-clustering only (use that directly)
 
 If doc files are uncached (newly written, not yet extracted):
   This script will print which files need extraction and exit.

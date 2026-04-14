@@ -12,6 +12,7 @@ VizPsyche is an open-source 3D graphics engine written in C++20 using OpenGL 4.6
 - [Prerequisites](#prerequisites)
 - [Building](#building)
 - [Running](#running)
+- [Knowledge Graph](#knowledge-graph)
 - [Dependencies](#dependencies)
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
@@ -112,6 +113,44 @@ Run the application:
 ```
 
 For release builds, replace `Debug` with `Release`.
+
+---
+
+## Knowledge Graph
+
+The project maintains a unified knowledge graph (`graphify-out/`) linking engine source and documentation together. It tracks which classes have doc coverage, surfaces coverage gaps, and maps relationships between code and chapters.
+
+```
+graphify-out/
+  graph.json        # committed — 1016 nodes (code + doc + images), 1428 edges
+  GRAPH_REPORT.md   # committed — community summary, god nodes, coverage gaps
+  graph.html        # generated — interactive visualization (gitignored)
+  wiki/             # generated — agent-crawlable wiki (gitignored)
+  obsidian/         # generated — Obsidian vault (gitignored)
+```
+
+### Setup after cloning
+
+```bash
+pip install graphifyy
+graphify install
+python graphify_rebuild.py
+```
+
+- `pip install graphifyy` — installs the graphify Python package
+- `graphify install` — installs the `/graphify` skill into Claude Code
+- `python graphify_rebuild.py` — regenerates wiki, Obsidian vault, HTML and report from the committed `graph.json` (no LLM calls needed)
+
+### Updating the graph
+
+| Situation | Command |
+|-----------|---------|
+| Source files changed (no new classes) | `python graphify_rebuild.py` |
+| New class added to source | Ask Claude Code for semantic extraction, then `python graphify_update_docs.py` |
+| New or revised chapter | Doc extraction (via Claude Code), then `python graphify_update_docs.py` |
+| Community labels missing | `python graphify_rebuild.py` |
+
+> **Note:** Never run the `/graphify` skill directly on any path — it rebuilds `graph.json` from scratch using only what it detects, destroying semantic nodes that span multiple directories. Always use the scripts above.
 
 ---
 
