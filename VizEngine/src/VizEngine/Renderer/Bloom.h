@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/Bloom.h
+// Chapter 40: Bloom — multi-pass bloom: brightness extraction + ping-pong Gaussian blur.
 
 #pragma once
 

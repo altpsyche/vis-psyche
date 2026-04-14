@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/MaterialFactory.h
+// Chapter 42: Material System — factory for creating named PBR presets (Gold, Chrome, Copper, etc.).
 
 #pragma once
 

@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Input.h
+// Chapter 21: Input System — static polling for keyboard state, mouse position, and scroll delta.
+
 #pragma once
 
 #include "VizEngine/Core.h"

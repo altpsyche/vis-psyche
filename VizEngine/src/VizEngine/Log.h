@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Log.h
+// Chapter 5: Logging System — VP_INFO/VP_WARN/VP_ERROR macros via spdlog, core and client loggers.
+
 #pragma once
 
 #include<memory>

@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/Texture3D.h
+// Chapter 41: Color Grading — RAII 3D texture wrapper for color grading LUT (16x16x16).
+
 #pragma once
 
 #include "VizEngine/Core.h"

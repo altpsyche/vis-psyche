@@ -1,4 +1,7 @@
 // VizEngine/src/VizEngine/Renderer/PBRMaterial.h
+// Chapter 42: Material System — PBR material binding IBL maps, shadow maps, and per-material uniforms.
+// Chapter 37: PBR uniforms (u_Roughness, u_Metallic, u_AO, u_NormalMatrix) introduced here.
+// Chapter 38: IBL bindings (u_IrradianceMap, u_PrefilteredMap, u_BRDF_LUT, u_UseIBL) introduced here.
 
 #pragma once
 

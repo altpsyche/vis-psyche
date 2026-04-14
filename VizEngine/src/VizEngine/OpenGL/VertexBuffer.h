@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/VertexBuffer.h
+// Chapter 9: Buffer Classes — OpenGL VBO (Vertex Buffer Object) RAII wrapper.
+
 #pragma once
 
 #include <glad/glad.h>

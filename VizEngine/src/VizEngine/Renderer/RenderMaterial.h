@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/RenderMaterial.h
+// Chapter 42: Material System — base material class with typed parameter binding and texture slots.
 
 #pragma once
 

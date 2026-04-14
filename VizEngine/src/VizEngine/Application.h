@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Application.h
+// Chapter 23: Engine and Game Loop — base Application class with OnCreate/OnUpdate/OnRender/OnEvent hooks.
+
 #pragma once
 
 #include <memory>

@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Model.h
+// Chapter 19: Model Loader Geometry — glTF/GLB model loader with Mesh and Material composition.
+
 #pragma once
 
 #include "VizEngine/Core.h"

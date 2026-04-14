@@ -1,4 +1,6 @@
 // VizEngine/src/VizEngine/OpenGL/CubemapUtils.h
+// Chapter 31: Skybox Rendering — EquirectangularToCubemap conversion for HDR environment maps.
+// Chapter 38: Image-Based Lighting — GenerateIrradianceMap, GeneratePrefilteredMap, GenerateBRDFLUT added.
 
 #pragma once
 

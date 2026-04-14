@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Transform.h
+// Chapter 13: Transform and Mesh — Position/Rotation/Scale struct with GetModelMatrix().
+
 #pragma once
 
 #include "VizEngine/Core.h"

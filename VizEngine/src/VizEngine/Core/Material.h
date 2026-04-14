@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Material.h
+// Chapter 20: Model Loader Materials — PBR Material struct (metallic-roughness workflow) for glTF models.
+
 #pragma once
 
 #include "VizEngine/Core.h"

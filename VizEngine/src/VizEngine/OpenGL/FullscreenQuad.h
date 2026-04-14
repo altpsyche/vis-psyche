@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/OpenGL/FullscreenQuad.h
+// Chapter 39: HDR Pipeline — fullscreen NDC quad for post-processing passes.
 
 #pragma once
 

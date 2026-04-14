@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Events/MouseEvent.h
+// Chapter 25: Event System — MouseButton, MouseMoved, and MouseScrolled event types.
 
 #pragma once
 

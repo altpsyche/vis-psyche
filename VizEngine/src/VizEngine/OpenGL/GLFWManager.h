@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/GLFWManager.h
+// Chapter 6: Window and Context — GLFW window lifecycle, input callbacks, event dispatch.
+
 #pragma once
 
 #include <iostream>

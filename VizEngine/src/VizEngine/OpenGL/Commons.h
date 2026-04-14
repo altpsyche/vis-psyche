@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/Commons.h
+// Chapter 42: Material System — standard texture slot constants (albedo=0, IBL=5-7, shadow=8, post=9-11).
+
 #pragma once
 
 namespace VizEngine

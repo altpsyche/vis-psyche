@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Light.h
+// Chapter 17: Lighting — DirectionalLight and PointLight structs for Blinn-Phong shading.
+
 #pragma once
 
 #include "VizEngine/Core.h"

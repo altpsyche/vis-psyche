@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/ErrorHandling.h
+// Chapter 7: OpenGL Fundamentals — GL_DEBUG_OUTPUT error callback for runtime GL error reporting.
+
 #pragma once
 
 #include <glad/glad.h>

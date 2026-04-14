@@ -1,3 +1,8 @@
+// VizEngine/src/VizEngine/OpenGL/Texture.h
+// Chapter 11: Textures — 2D texture loading from file, raw data, or as framebuffer attachment.
+// Chapter 30: Cubemaps and HDR — HDR equirectangular and empty cubemap constructors added.
+// Chapter 41: Color Grading — CreateNeutralLUT3D and BindTexture3D static utilities added.
+
 #pragma once
 
 #include <iostream>

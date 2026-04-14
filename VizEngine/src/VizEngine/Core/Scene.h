@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Scene.h
+// Chapter 15: Scene Management — Scene container for SceneObjects with Render() integration.
+
 #pragma once
 
 #include "VizEngine/Core.h"

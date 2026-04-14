@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/OpenGL/VertexBufferLayout.h
+// Chapter 9: Buffer Classes — typed vertex attribute layout descriptor (stride + element list).
+
 #pragma once
 
 #include <glad/glad.h>

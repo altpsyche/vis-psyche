@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core.h
+// Chapter 4: DLL Architecture — VizEngine_API dllexport/dllimport visibility macro.
+
 #pragma once
 
 #ifdef VP_PLATFORM_WINDOWS

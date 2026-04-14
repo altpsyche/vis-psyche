@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Core/Camera.h
+// Chapter 14: Camera System — perspective camera with view/projection matrices and movement.
+
 #pragma once
 
 #include "VizEngine/Core.h"

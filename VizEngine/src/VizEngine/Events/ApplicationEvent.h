@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Events/ApplicationEvent.h
+// Chapter 25: Event System — WindowClose, WindowResize, and WindowFocus event types.
 
 #pragma once
 

@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Events/Event.h
+// Chapter 25: Event System — base Event class, EventType enum, and EventDispatcher template.
 
 #pragma once
 

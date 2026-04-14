@@ -1,3 +1,9 @@
+// VizEngine/src/VizEngine/OpenGL/Renderer.h
+// Chapter 10: Shader and Renderer — draw calls, viewport, clear.
+// Chapter 32: Depth and Stencil Testing — depth func, stencil test, face culling added.
+// Chapter 33: Blending and Transparency — blending state management added.
+// Chapter 35: Instancing — DrawInstanced for hardware-instanced geometry added.
+
 #pragma once
 
 #include "Shader.h"

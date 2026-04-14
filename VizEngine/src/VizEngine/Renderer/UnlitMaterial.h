@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/UnlitMaterial.h
+// Chapter 42: Material System — unlit material for skyboxes and debug geometry (no lighting calculation).
 
 #pragma once
 

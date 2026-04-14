@@ -1,3 +1,7 @@
+// VizEngine/src/VizEngine/OpenGL/VertexArray.h
+// Chapter 9: Buffer Classes — OpenGL VAO (Vertex Array Object) with attribute linking.
+// Chapter 35: Instancing — LinkInstanceBuffer for per-instance attribute divisors.
+
 #pragma once
 
 #include <glad/glad.h>

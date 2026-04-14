@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/MaterialParameter.h
+// Chapter 42: Material System — std::variant storage for typed shader parameters (float, vec3, mat4, texture slot).
 
 #pragma once
 

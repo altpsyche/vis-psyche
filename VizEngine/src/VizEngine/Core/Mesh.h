@@ -1,3 +1,7 @@
+// VizEngine/src/VizEngine/Core/Mesh.h
+// Chapter 13: Transform and Mesh — Vertex struct, Mesh class, factory shapes (Cube, Sphere, Plane).
+// Chapter 34: Normal Mapping — Tangent and Bitangent added to Vertex for TBN matrix.
+
 #pragma once
 
 #include "VizEngine/Core.h"

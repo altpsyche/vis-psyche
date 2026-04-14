@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/GUI/UIManager.h
+// Chapter 16: Dear ImGui — ImGui integration wrapper (context, frames, widget helpers).
+
 #pragma once
 
 #include <string>

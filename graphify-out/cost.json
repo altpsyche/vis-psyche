@@ -1,0 +1,33 @@
+{
+  "runs": [
+    {
+      "date": "2026-04-13T16:28:18.385632+00:00",
+      "input_tokens": 44660,
+      "output_tokens": 7004,
+      "files": 147
+    },
+    {
+      "date": "2026-04-13T18:17:15.991296+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 10,
+      "mode": "update"
+    },
+    {
+      "date": "2026-04-13T20:03:47.712023+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 4,
+      "mode": "update"
+    },
+    {
+      "date": "2026-04-14T04:20:06.604093+00:00",
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "files": 149,
+      "mode": "full-unified"
+    }
+  ],
+  "total_input_tokens": 44660,
+  "total_output_tokens": 7004
+}

@@ -1,3 +1,16 @@
+### Graphify ###
+# Temporary pipeline files (created and deleted each run)
+.graphify_*.json
+.graphify_*.txt
+.graphify_*.pkl
+.graphify_python
+
+# Semantic extraction cache — regenerable, noisy diffs, not source content
+graphify-out/cache/
+
+# Claude Code session data (user-specific)
+.claude/
+
 ### C++ ###
 # Prerequisites
 *.d

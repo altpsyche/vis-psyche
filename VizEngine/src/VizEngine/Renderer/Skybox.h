@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Renderer/Skybox.h
+// Chapter 31: Skybox Rendering — cubemap skybox that follows camera rotation (no translation).
 
 #pragma once
 

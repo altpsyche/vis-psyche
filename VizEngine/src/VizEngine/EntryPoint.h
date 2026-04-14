@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/EntryPoint.h
+// Chapter 23: Engine and Game Loop — main() entry point that runs CreateApplication().
+
 #pragma once
 
 #ifdef VP_PLATFORM_WINDOWS

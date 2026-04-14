@@ -1,3 +1,6 @@
+// VizEngine/src/VizEngine/Engine.h
+// Chapter 23: Engine and Game Loop — Engine singleton (game loop, subsystem owner, event routing).
+
 #pragma once
 
 #include <string>

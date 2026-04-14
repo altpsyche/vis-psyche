@@ -1,4 +1,6 @@
 // VizEngine/src/VizEngine/OpenGL/Framebuffer.h
+// Chapter 27: Framebuffers — RAII FBO wrapper for off-screen rendering and texture attachment.
+// Chapter 32: Depth and Stencil Testing — AttachDepthStencilTexture added.
 
 #pragma once
 

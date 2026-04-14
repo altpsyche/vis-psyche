@@ -1,3 +1,7 @@
+// VizEngine/src/VizEngine/OpenGL/Shader.h
+// Chapter 10: Shader and Renderer — GLSL shader loader, compiler, and uniform setter.
+// Chapter 37: PBR Implementation — SetMatrix3fv added for u_NormalMatrix upload.
+
 #pragma once
 
 #include <glad/glad.h>

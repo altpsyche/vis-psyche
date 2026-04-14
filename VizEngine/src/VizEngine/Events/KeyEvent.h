@@ -1,4 +1,5 @@
 // VizEngine/src/VizEngine/Events/KeyEvent.h
+// Chapter 25: Event System — KeyPressed, KeyReleased, and KeyTyped event types.
 
 #pragma once
 

@@ -1,3 +1,8 @@
+// VizEngine/src/VizEngine/Core/SceneObject.h
+// Chapter 15: Scene Management — SceneObject bundles mesh, transform, and material for rendering.
+// Chapter 35: Instancing — InstanceCount field for hardware-instanced draws.
+// Chapter 42: Material System — MaterialRef field for the production material pipeline.
+
 #pragma once
 
 #include "VizEngine/Core.h"
