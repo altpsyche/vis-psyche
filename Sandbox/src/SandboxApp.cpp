@@ -186,8 +186,14 @@ public:
 		m_SceneRenderer->SetIBLMaps(m_IrradianceMap, m_PrefilteredMap, m_BRDFLut);
 		m_SceneRenderer->SetUseIBL(m_UseIBL);
 		m_SceneRenderer->SetIBLIntensity(m_IBLIntensity);
-		m_SceneRenderer->SetDirectionalLight(&m_Light);
-		m_SceneRenderer->SetPointLights(m_PBRLightPositions, m_PBRLightColors, 4);
+		m_SceneRenderer->SetDirectionalLight(m_Light);
+		for (int i = 0; i < 4; ++i)
+		{
+			VizEngine::PointLight pl;
+			pl.Position = m_PBRLightPositions[i];
+			pl.Diffuse  = m_PBRLightColors[i];
+			m_SceneRenderer->AddPointLight(pl);
+		}
 		m_SceneRenderer->SetSkybox(m_Skybox.get());
 		m_SceneRenderer->SetShowSkybox(m_ShowSkybox);
 		m_SceneRenderer->SetClearColor(m_ClearColor);
@@ -557,20 +563,36 @@ public:
 		// =========================================================================
 		uiManager.StartWindow("Lighting");
 		uiManager.Text("Directional Light");
-		uiManager.DragFloat3("Direction", &m_Light.Direction.x, 0.01f, -1.0f, 1.0f);
-		uiManager.ColorEdit3("Dir Color", &m_Light.Diffuse.x);
+		if (uiManager.DragFloat3("Direction", &m_Light.Direction.x, 0.01f, -1.0f, 1.0f))
+			m_SceneRenderer->SetDirectionalLight(m_Light);
+		if (uiManager.ColorEdit3("Dir Color", &m_Light.Diffuse.x))
+			m_SceneRenderer->SetDirectionalLight(m_Light);
 		uiManager.Separator();
 		uiManager.Text("Point Lights (4x)");
+
+		auto rebuildPointLights = [&]()
+		{
+			m_SceneRenderer->ClearPointLights();
+			for (int i = 0; i < 4; ++i)
+			{
+				VizEngine::PointLight pl;
+				pl.Position = m_PBRLightPositions[i];
+				pl.Diffuse  = m_PBRLightColors[i];
+				m_SceneRenderer->AddPointLight(pl);
+			}
+		};
 
 		if (uiManager.SliderFloat("Intensity", &m_PBRLightIntensity, 0.0f, 1000.0f))
 		{
 			for (int i = 0; i < 4; ++i)
 				m_PBRLightColors[i] = m_PBRLightColor * m_PBRLightIntensity;
+			rebuildPointLights();
 		}
 		if (uiManager.ColorEdit3("Point Color", &m_PBRLightColor.x))
 		{
 			for (int i = 0; i < 4; ++i)
 				m_PBRLightColors[i] = m_PBRLightColor * m_PBRLightIntensity;
+			rebuildPointLights();
 		}
 		uiManager.EndWindow();
 

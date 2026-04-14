@@ -30,7 +30,8 @@ set(VIZENGINE_SOURCES
     src/VizEngine/OpenGL/VertexBuffer.cpp
     src/VizEngine/OpenGL/CubemapUtils.cpp
     src/VizEngine/OpenGL/FullscreenQuad.cpp
-    
+    src/VizEngine/OpenGL/ShaderStorageBuffer.cpp
+
     # Renderer
     src/VizEngine/Renderer/Skybox.cpp
     src/VizEngine/Renderer/Bloom.cpp
@@ -41,6 +42,7 @@ set(VIZENGINE_SOURCES
     src/VizEngine/Renderer/ShadowPass.cpp
     src/VizEngine/Renderer/PostProcessPipeline.cpp
     src/VizEngine/Renderer/ForwardRenderPath.cpp
+    src/VizEngine/Renderer/LightManager.cpp
     src/VizEngine/Renderer/SceneRenderer.cpp
     
     # GUI
@@ -87,6 +89,7 @@ set(VIZENGINE_HEADERS
     src/VizEngine/OpenGL/VertexBufferLayout.h
     src/VizEngine/OpenGL/CubemapUtils.h
     src/VizEngine/OpenGL/FullscreenQuad.h
+    src/VizEngine/OpenGL/ShaderStorageBuffer.h
     
     # Renderer headers
     src/VizEngine/Renderer/Skybox.h
@@ -101,6 +104,7 @@ set(VIZENGINE_HEADERS
     src/VizEngine/Renderer/ShadowPass.h
     src/VizEngine/Renderer/PostProcessPipeline.h
     src/VizEngine/Renderer/ForwardRenderPath.h
+    src/VizEngine/Renderer/LightManager.h
     src/VizEngine/Renderer/SceneRenderer.h
     
     # GUI headers

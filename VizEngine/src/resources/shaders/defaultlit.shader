@@ -80,11 +80,26 @@ uniform bool u_UseNormalMap;
 uniform vec3 u_ViewPos;
 
 // ============================================================================
-// Lights (up to 4 point lights)
+// Lights — Chapter 44: SSBO replaces fixed uniform arrays (no 4-light cap).
+//
+// GPUPointLight must match the C++ GPUPointLight struct in LightManager.h.
+// std430 packs vec4 at 16-byte alignment, float at 4-byte — 48 bytes total.
 // ============================================================================
-uniform vec3 u_LightPositions[4];
-uniform vec3 u_LightColors[4];
-uniform int u_LightCount;
+struct PointLight
+{
+    vec4 Position;   // xyz = world position, w unused
+    vec4 Color;      // xyz = diffuse radiance, w unused
+    float Constant;
+    float Linear;
+    float Quadratic;
+    float _pad;
+};
+
+layout(std430, binding = 0) readonly buffer LightBuffer
+{
+    PointLight lights[];
+};
+uniform int u_PointLightCount;
 
 // ============================================================================
 // Directional Light (optional, for unified lighting with existing scene)
@@ -327,20 +342,24 @@ void main()
     // Accumulate radiance from all lights
     vec3 Lo = vec3(0.0);
     
-    for (int i = 0; i < u_LightCount; ++i)
+    for (int i = 0; i < u_PointLightCount; ++i)
     {
         // ====================================================================
-        // Per-Light Calculations
+        // Per-Light Calculations (Chapter 44: reads from SSBO, not uniform array)
         // ====================================================================
-        
+
         // Light direction and distance
-        vec3 L = normalize(u_LightPositions[i] - v_WorldPos);
+        vec3 lightPos = lights[i].Position.xyz;
+        vec3 L = normalize(lightPos - v_WorldPos);
         vec3 H = normalize(V + L);  // Halfway vector
-        float distance = length(u_LightPositions[i] - v_WorldPos);
-        
-        // Attenuation (inverse square law)
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = u_LightColors[i] * attenuation;
+        float dist = length(lightPos - v_WorldPos);
+
+        // Attenuation — tri-factor model (Chapter 17) replaces inverse-square.
+        // 1 / (Kc + Kl*d + Kq*d²) gives artist-controllable falloff.
+        float attenuation = 1.0 / (lights[i].Constant
+                                  + lights[i].Linear    * dist
+                                  + lights[i].Quadratic * dist * dist);
+        vec3 radiance = lights[i].Color.xyz * attenuation;
         
         // ====================================================================
         // Cook-Torrance BRDF
