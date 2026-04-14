@@ -2,7 +2,6 @@
 // Chapter 44: Light Management & SSBOs
 
 #include "LightManager.h"
-#include "VizEngine/Log.h"
 
 namespace VizEngine
 {
