@@ -49,7 +49,7 @@ namespace VizEngine
 		 */
 		void Bind(unsigned int bindingPoint) const;
 
-		void Unbind() const;
+		void Unbind(unsigned int bindingPoint) const;
 
 		unsigned int GetID() const { return m_ssbo; }
 

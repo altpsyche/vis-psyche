@@ -29,6 +29,13 @@ namespace VizEngine
 		m_Dirty = true;
 	}
 
+	void LightManager::ClearDirectionalLight()
+	{
+		m_HasDirLight = false;
+		m_DirLight = DirectionalLight{};
+		m_Dirty = true;
+	}
+
 	void LightManager::Upload()
 	{
 		if (!m_Dirty)

@@ -58,11 +58,10 @@ namespace VizEngine
 		shader->SetMatrix4fv("u_Projection", data.CameraPtr->GetProjectionMatrix());
 		shader->SetVec3("u_ViewPos", data.CameraPtr->GetPosition());
 
-		// Point lights — SSBO already uploaded + bound by SceneRenderer (Chapter 44).
+		// Point lights — SSBO already uploaded + bound by SceneRenderer before Execute().
 		// Just tell the shader how many entries are valid.
 		if (data.Lights)
 		{
-			data.Lights->Bind(0);
 			shader->SetInt("u_PointLightCount", data.Lights->GetPointLightCount());
 		}
 		else

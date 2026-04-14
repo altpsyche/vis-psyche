@@ -40,9 +40,11 @@ namespace VizEngine
 
 	void ShaderStorageBuffer::SetData(const void* data, size_t size)
 	{
+		if (size == 0) return;
+
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
 
-		if (size <= m_allocatedSize)
+		if (m_allocatedSize > 0 && size <= m_allocatedSize)
 		{
 			// Reuse existing allocation — no realloc overhead.
 			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, (GLsizeiptr)size, data);
@@ -62,8 +64,8 @@ namespace VizEngine
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, m_ssbo);
 	}
 
-	void ShaderStorageBuffer::Unbind() const
+	void ShaderStorageBuffer::Unbind(unsigned int bindingPoint) const
 	{
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, bindingPoint, 0);
 	}
 }

@@ -401,6 +401,8 @@ Nodes (0):
 ## Knowledge Gaps
 - **309 isolated node(s):** `Book Structure and Parts Overview`, `OpenGL Pipeline Overview (Buffers, Shaders, Textures)`, `Visual Studio 2022 with C++ Workload`, `CMake 3.16+ Build System Setup`, `Git 2.30+ Version Control Setup` (+304 more)
   These have ≤1 connection - possible missing edges or undocumented components.
+- **Thin community `Game Loop Architecture`** (2 nodes): `Scene Object Lifecycle`, `Update()`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Material Bind`** (2 nodes): `UV Texture Coordinates`, `Vertical Flip for OpenGL Origin`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `DLL Export Macro`** (2 nodes): `Ch06: Window & Context`, `GLFWManager`
@@ -412,10 +414,6 @@ Nodes (0):
 - **Thin community `Shadow Map Texture Config`** (2 nodes): `Ch02: OpenGL Loading (GLAD)`, `GLAD (library)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Alpha Channel Design`** (2 nodes): `Camera`, `Ch14: Camera System`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Input System Hook`** (2 nodes): `main()`, `EntryPoint.h`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Error Handling Hook`** (2 nodes): `Bind()`, `Material.cpp`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 ## Coverage Gaps
 

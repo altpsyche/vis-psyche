@@ -58,6 +58,7 @@ namespace VizEngine
 		void AddPointLight(const PointLight& light);
 		void ClearPointLights();
 		void SetDirectionalLight(const DirectionalLight& light);
+		void ClearDirectionalLight();
 
 		// =====================================================================
 		// Accessors
