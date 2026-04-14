@@ -28,7 +28,7 @@
 - [[_COMMUNITY_Mesh & Geometry System|Mesh & Geometry System]]
 - [[_COMMUNITY_Input & Event System Code|Input & Event System Code]]
 - [[_COMMUNITY_GLFW Window & Input Callbacks|GLFW Window & Input Callbacks]]
-- [[_COMMUNITY_Camera System|Camera System]]
+- [[_COMMUNITY_Camera System (Code)|Camera System (Code)]]
 - [[_COMMUNITY_RenderMaterial Class API|RenderMaterial Class API]]
 - [[_COMMUNITY_Entity-Component System Concept|Entity-Component System Concept]]
 - [[_COMMUNITY_Model Loading System|Model Loading System]]
@@ -71,7 +71,7 @@
 - [[_COMMUNITY_Entry Point|Entry Point]]
 - [[_COMMUNITY_Material Bind|Material Bind]]
 - [[_COMMUNITY_DLL Export Macro|DLL Export Macro]]
-- [[_COMMUNITY_Camera Controller & Delta Time|Camera Controller & Delta Time]]
+- [[_COMMUNITY_Camera Controller & Delta Time (Code)|Camera Controller & Delta Time (Code)]]
 - [[_COMMUNITY_Texture Filtering|Texture Filtering]]
 - [[_COMMUNITY_Shadow Map Texture Config|Shadow Map Texture Config]]
 - [[_COMMUNITY_Alpha Channel Design|Alpha Channel Design]]
@@ -215,7 +215,7 @@ Nodes (13): SetRotation(), Edge Detection (Pressed vs Held vs Released), Input U
 Cohesion: 0.12
 Nodes (16): VP_CORE_ASSERT and VP_ASSERT Debug Assertions, Cross-Platform VP_DEBUG_BREAK Macro, Dual Logger Separation (Core vs Client), VP_CORE_* and VP_* Logging Macros, Chapter 5: Logging System, Rationale: Assertions Stripped in Release (NDEBUG), Rationale: Replace std::cout with spdlog, spdlog Library Integration (+8 more)
 
-### Community 18 - "Camera System"
+### Community 18 - "Camera System (Code)"
 Cohesion: 0.14
 Nodes (11): Static Factory with Null Return, glTF pbrMetallicRoughness Extraction, OnCreate for Asset Loading and Scene Setup, EndsWith(), GetDirectory(), GetFilename(), LoadFromFile(), Model::ModelLoader (+3 more)
 
@@ -387,7 +387,7 @@ Nodes (3): Chapter 42: Material System, MaterialParameterValue (variant type ali
 Cohesion: 1.0
 Nodes (2): UV Texture Coordinates, Vertical Flip for OpenGL Origin
 
-### Community 61 - "Camera Controller & Delta Time"
+### Community 61 - "Camera Controller & Delta Time (Code)"
 Cohesion: 1.0
 Nodes (2): VizPsyche Engine (Ch0-43), Singleton Pattern
 
@@ -420,7 +420,7 @@ Nodes (0):
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `DLL Export Macro`** (2 nodes): `UV Texture Coordinates`, `Vertical Flip for OpenGL Origin`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Camera Controller & Delta Time`** (2 nodes): `VizPsyche Engine (Ch0-43)`, `Singleton Pattern`
+- **Thin community `Camera Controller & Delta Time (Code)`** (2 nodes): `VizPsyche Engine (Ch0-43)`, `Singleton Pattern`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Texture Filtering`** (2 nodes): `Ch02: OpenGL Loading (GLAD)`, `GLAD (library)`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.

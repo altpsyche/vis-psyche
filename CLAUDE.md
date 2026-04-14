@@ -15,7 +15,9 @@ Graph is updated manually — no post-commit hook.
 ```
 python graphify_rebuild.py
 ```
-Re-clusters the existing graph and regenerates outputs. Does not add new code nodes — if you added new classes, ask Claude Code to run a semantic extraction for those files, then `python graphify_update_docs.py`.
+Re-clusters the existing graph and regenerates outputs. Does not add new code nodes.
+
+If you added new C++ classes, `graphify_rebuild.py` alone is not enough — the new class nodes do not exist in `graph.json` yet. You need a full unified rebuild: ask Claude Code to run semantic extraction on the new `.h`/`.cpp` files, then manually merge the resulting nodes into `graphify-out/graph.json`, then run `python graphify_rebuild.py`. See the "Full unified rebuild" row in the table below. **Do not use `graphify_update_docs.py` for this** — that script only processes doc chapter files.
 
 **After writing or significantly revising a chapter:**
 1. Ask Claude Code to run the doc subagent extraction for the new/changed file(s)
@@ -31,7 +33,7 @@ Re-clusters the existing graph and regenerates outputs. Does not add new code no
 | Situation | Command |
 |-----------|---------|
 | Source files changed (no new classes) | `python graphify_rebuild.py` |
-| New classes added to source | Ask Claude Code for semantic extraction, then `python graphify_update_docs.py` |
+| New classes added to source | Ask Claude Code — full unified rebuild (semantic extraction → manual merge into graph.json → `python graphify_rebuild.py`). Do NOT use `graphify_update_docs.py`. |
 | New/revised chapter added | `python graphify_update_docs.py` (after LLM extraction) |
 | Community labels wrong/missing | `python graphify_rebuild.py` |
 | Full unified rebuild needed | Ask Claude Code — manual combined pipeline (src + docs, mixed chunks) |

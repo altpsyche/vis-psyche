@@ -1,7 +1,7 @@
 """
 graphify_rebuild.py — Re-cluster and re-label the VizEngine knowledge graph.
 
-Run this after any `/graphify --update` that shifts community IDs, or whenever
+Run this after any doc/code extraction that shifts community IDs, or whenever
 community labels need to be re-verified and re-applied.
 
 Usage (from project root):
@@ -53,7 +53,7 @@ COMMUNITY_LABELS = {
     15: "Mesh & Geometry System",
     16: "Input & Event System Code",
     17: "GLFW Window & Input Callbacks",
-    18: "Camera System",
+    18: "Camera System (Code)",
     19: "RenderMaterial Class API",
     20: "Entity-Component System Concept",
     21: "Model Loading System",
@@ -96,7 +96,7 @@ COMMUNITY_LABELS = {
     58: "Entry Point",
     59: "Material Bind",
     60: "DLL Export Macro",
-    61: "Camera Controller & Delta Time",
+    61: "Camera Controller & Delta Time (Code)",
     62: "Texture Filtering",
     63: "Shadow Map Texture Config",
     64: "Alpha Channel Design",
@@ -107,13 +107,13 @@ COMMUNITY_LABELS = {
     69: "Input System (A_Reference)",
     70: "Camera System (A_Reference)",
     71: "OpenGL Loading / GLAD (A_Reference)",
-    72: "Camera Controller & Delta Time",
+    72: "Camera Controller & Delta Time (Docs)",
     73: "Shadow Map Texture Wrap Config",
     74: "Texture Filtering Rationale",
     75: "Alpha Channel in ObjectColor",
     76: "Engine Singleton & Book Overview",
     77: "GLFW Window & Context",
-    78: "Camera System",
+    78: "Camera System (Docs)",
     79: "OpenGL Loading / GLAD",
     80: "Input System",
     81: "DLL Export Macro (Chapter 4)",
@@ -154,16 +154,28 @@ for n in list(G.nodes()):
     canonical = f"{stem}_{stem}"          # e.g. scene_scene
     if canonical not in G.nodes():
         continue                           # no stem_stem twin — keep as-is
-    # Redirect every edge touching the _cpp_ node to the canonical node
+    # Redirect every edge touching the _cpp_ node to the canonical node.
+    # If the edge already exists, merge attributes (take max weight) rather
+    # than silently dropping the _cpp_ edge's data.
     for pred in list(G.predecessors(n)):
         if pred != canonical:
             edge_data = G.edges[pred, n].copy()
-            if not G.has_edge(pred, canonical):
+            if G.has_edge(pred, canonical):
+                existing = G.edges[pred, canonical]
+                existing["weight"] = max(
+                    existing.get("weight", 1.0), edge_data.get("weight", 1.0)
+                )
+            else:
                 G.add_edge(pred, canonical, **edge_data)
     for succ in list(G.successors(n)):
         if succ != canonical:
             edge_data = G.edges[n, succ].copy()
-            if not G.has_edge(canonical, succ):
+            if G.has_edge(canonical, succ):
+                existing = G.edges[canonical, succ]
+                existing["weight"] = max(
+                    existing.get("weight", 1.0), edge_data.get("weight", 1.0)
+                )
+            else:
                 G.add_edge(canonical, succ, **edge_data)
     # Copy any attributes the _cpp_ node has that canonical lacks
     for attr, val in G.nodes[n].items():
@@ -176,12 +188,14 @@ if merged_cpp:
     print(f"Merged {merged_cpp} _cpp_ duplicate nodes into canonical stem_stem form")
 
 # ── Deduplicate hyperedges by label ──────────────────────────────────────────
-seen_hyp_labels: set[str] = set()
+seen_hyp_keys: set[tuple] = set()
 deduped_hyp: list[dict] = []
 for h in hyperedges:
-    label = h.get("label", "")
-    if label not in seen_hyp_labels:
-        seen_hyp_labels.add(label)
+    # Dedup on (label, frozenset of member node IDs) — label-only dedup
+    # collapses distinct hyperedges that share a label (e.g. empty-label edges).
+    key = (h.get("label", ""), frozenset(h.get("nodes", [])))
+    if key not in seen_hyp_keys:
+        seen_hyp_keys.add(key)
         deduped_hyp.append(h)
 if len(deduped_hyp) < len(hyperedges):
     print(f"Deduped hyperedges: {len(hyperedges)} -> {len(deduped_hyp)}")
@@ -268,10 +282,17 @@ doc_node_ids = {n for n, d in G.nodes(data=True) if d.get("file_type") == "docum
 code_node_ids = {n for n, d in G.nodes(data=True) if d.get("file_type") == "code"}
 
 # Code class nodes with no doc edges (coverage gaps = next chapters to write)
-# Filter to class-level nodes only: stem_stem pattern (one underscore, not method-level)
+# Filter to class-level nodes only: stem_stem pattern (not method-level).
+# Handles single-word IDs (texture_texture) and multi-word IDs
+# (forward_render_path_forward_render_path) by checking that the first half
+# equals the second half of the underscore-split parts.
 def is_class_node(nid: str) -> bool:
     parts = nid.split("_")
-    return len(parts) == 2 and parts[0] == parts[1]
+    n = len(parts)
+    if n < 2 or n % 2 != 0:
+        return False
+    half = n // 2
+    return parts[:half] == parts[half:]
 
 gaps = []
 for n in code_node_ids:
@@ -323,17 +344,18 @@ except Exception as e:
 
 try:
     # Patch Path.write_text to default to utf-8 (Windows cp1252 can't encode arrows etc.)
+    # Use a nested try/finally so the patch is always restored, even on exception.
     from pathlib import Path as _Path
     _orig_write_text = _Path.write_text
     def _utf8_write_text(self, data, encoding=None, errors=None, newline=None):
         return _orig_write_text(self, data, encoding or "utf-8", errors, newline)
     _Path.write_text = _utf8_write_text
-
-    n = to_wiki(G, communities, "graphify-out/wiki", community_labels=community_labels,
-                cohesion=cohesion, god_nodes_data=god_node_list)
-    print(f"Saved: graphify-out/wiki/ ({n} files)")
-
-    _Path.write_text = _orig_write_text  # restore
+    try:
+        n = to_wiki(G, communities, "graphify-out/wiki", community_labels=community_labels,
+                    cohesion=cohesion, god_nodes_data=god_node_list)
+        print(f"Saved: graphify-out/wiki/ ({n} files)")
+    finally:
+        _Path.write_text = _orig_write_text  # always restore
 except Exception as e:
     print(f"wiki: {e}")
 

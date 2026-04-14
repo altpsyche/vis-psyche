@@ -13,13 +13,13 @@ How it works:
   2. Loads existing graphify-out/graph.json
   3. Merges: new doc nodes replace old doc nodes with the same IDs;
      code nodes and their edges are untouched
-  4. Rebuilds graph and saves graph.json, GRAPH_REPORT.md, graph.html, wiki/, obsidian/
-  5. Calls graphify_rebuild.py to re-cluster and re-apply community labels
+  4. Saves merged graph.json (no clustering yet)
+  5. Calls graphify_rebuild.py to re-cluster, re-apply community labels, and
+     regenerate GRAPH_REPORT.md, graph.html, wiki/, obsidian/
 
 When to run:
   - After writing a brand-new chapter (Claude Code must first extract it —
     see CLAUDE.md for the doc extraction workflow)
-  - After new code classes are added via semantic extraction
   - After graphify_rebuild.py loses doc coverage for any reason
   - To verify doc coverage is up to date without a full re-extraction
 
@@ -39,7 +39,6 @@ from pathlib import Path
 from networkx.readwrite import json_graph
 from graphify.cache import check_semantic_cache
 from graphify.build import build_from_json
-from graphify.cluster import cluster
 
 DOC_DIR = Path("VizEngine/docs/vis-psyche-docs/chapters")
 GRAPH_PATH = Path("graphify-out/graph.json")
@@ -132,8 +131,18 @@ def main():
             seen.add(n["id"])
             deduped.append(n)
 
-    # Keep all existing edges + new doc edges
-    merged_edges = existing_links + cached_edges
+    # Keep all existing edges + new doc edges, deduplicated by (source, target).
+    # Without dedup, repeated runs append cached_edges each time, inflating the
+    # JSON and the cross-type edge count printed before build_from_json.
+    # New doc edges win over existing ones for the same (source, target) pair.
+    edge_map: dict[tuple, dict] = {}
+    for e in existing_links:
+        key = (e.get("source", ""), e.get("target", ""))
+        edge_map[key] = e
+    for e in cached_edges:
+        key = (e.get("source", ""), e.get("target", ""))
+        edge_map[key] = e  # newer doc edge wins
+    merged_edges = list(edge_map.values())
     merged_hyp = hyperedges + cached_hyp
 
     print(f"Merged: {len(deduped)} nodes, {len(merged_edges)} edges")
@@ -151,13 +160,7 @@ def main():
     )
     print(f"Cross-type edges: {cross}")
 
-    # Cluster
-    communities = cluster(G)
-    for cid, nodes in communities.items():
-        for n in nodes:
-            G.nodes[n]["community"] = cid
-
-    # Save
+    # Save (clustering is done by graphify_rebuild.py below — no point clustering twice)
     out = json_graph.node_link_data(G, edges="links")
     out["hyperedges"] = merged_hyp
     GRAPH_PATH.write_text(json.dumps(out, indent=2))

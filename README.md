@@ -118,16 +118,38 @@ For release builds, replace `Debug` with `Release`.
 
 ## Knowledge Graph
 
-The project maintains a unified knowledge graph (`graphify-out/`) linking engine source and documentation together. It tracks which classes have doc coverage, surfaces coverage gaps, and maps relationships between code and chapters.
+The project maintains a unified knowledge graph (`graphify-out/`) that links engine source code and documentation chapters together into a single navigable structure. It is used to track which classes have doc coverage, surface coverage gaps (classes with no chapter yet), and map the relationships between code abstractions and the chapters that teach them.
 
 ```
 graphify-out/
-  graph.json        # committed — 1016 nodes (code + doc + images), 1428 edges
+  graph.json        # committed — source of truth (1016 nodes, 1428 edges)
   GRAPH_REPORT.md   # committed — community summary, god nodes, coverage gaps
   graph.html        # generated — interactive visualization (gitignored)
   wiki/             # generated — agent-crawlable wiki (gitignored)
   obsidian/         # generated — Obsidian vault (gitignored)
 ```
+
+### How it works
+
+The graph contains two types of nodes:
+
+- **Code nodes** — extracted from C++ headers and source files via AST analysis. Each node represents a class, method, or shader. IDs follow the pattern `classname_classname` for classes and `classname_methodname` for methods.
+- **Document nodes** — extracted from chapter `.md` files via LLM semantic analysis. Each node represents a concept, section, or topic taught in a chapter.
+
+**Edges** connect the two layers:
+- `chapter → class` means a doc chapter teaches that class.
+- `class → chapter` means a header annotation links back to that chapter.
+- Cross-type edges (code ↔ doc) are boosted to weight 8.0 during clustering to encourage mixed communities.
+
+**Communities** are clusters of closely related nodes detected by the Leiden/Louvain algorithm. Each community gets a human-readable label defined in `graphify_rebuild.py`. **Coverage gaps** are code class nodes with no doc edges — these are the next chapters to write.
+
+### The two scripts
+
+The graph is maintained by two scripts that serve different purposes:
+
+**`graphify_rebuild.py`** — Re-cluster and regenerate all outputs from the existing `graph.json`. This is the fast path: no LLM calls, no node changes. It cleans up AST artifacts (pseudo-nodes, `_cpp_` duplicates), boosts cross-type edge weights, re-runs community detection, applies labels, and writes `GRAPH_REPORT.md`, `graph.html`, `wiki/`, and `obsidian/`. Run this whenever you want outputs to reflect the current state of `graph.json`.
+
+**`graphify_update_docs.py`** — Merge freshly extracted doc chapter nodes into the existing graph. Loads all cached doc extractions from `VizEngine/docs/vis-psyche-docs/chapters/`, merges them into `graph.json` (preserving all code nodes and their edges), then calls `graphify_rebuild.py` to re-cluster and regenerate outputs. Run this after writing or revising a chapter.
 
 ### Setup after cloning
 
@@ -139,18 +161,75 @@ python graphify_rebuild.py
 
 - `pip install graphifyy` — installs the graphify Python package
 - `graphify install` — installs the `/graphify` skill into Claude Code
-- `python graphify_rebuild.py` — regenerates wiki, Obsidian vault, HTML and report from the committed `graph.json` (no LLM calls needed)
+- `python graphify_rebuild.py` — regenerates `wiki/`, `obsidian/`, `graph.html`, and `GRAPH_REPORT.md` from the committed `graph.json`. No LLM calls required.
 
 ### Updating the graph
 
-| Situation | Command |
-|-----------|---------|
-| Source files changed (no new classes) | `python graphify_rebuild.py` |
-| New class added to source | Ask Claude Code for semantic extraction, then `python graphify_update_docs.py` |
-| New or revised chapter | Doc extraction (via Claude Code), then `python graphify_update_docs.py` |
-| Community labels missing | `python graphify_rebuild.py` |
+#### Source files changed, no new classes
 
-> **Note:** Never run the `/graphify` skill directly on any path — it rebuilds `graph.json` from scratch using only what it detects, destroying semantic nodes that span multiple directories. Always use the scripts above.
+```bash
+python graphify_rebuild.py
+```
+
+Re-clusters the existing graph and regenerates all outputs. Safe to run any time — it does not add or remove nodes.
+
+#### New or revised chapter added
+
+```bash
+# 1. Ask Claude Code to extract the chapter(s) into the graphify cache.
+#    Use the doc subagent workflow: 5 files per subagent, dedicated doc context.
+#    Claude Code will confirm when extraction is complete.
+
+# 2. Merge the extractions and regenerate:
+python graphify_update_docs.py
+```
+
+`graphify_update_docs.py` loads all cached doc extractions, merges new doc nodes into `graph.json` (skipping any doc nodes whose IDs collide with existing code nodes, to preserve cross-type edges), then calls `graphify_rebuild.py` internally to re-cluster and regenerate outputs.
+
+If any chapter files are not yet cached, the script prints which files need extraction and exits. Run the Claude Code extraction for those files, then re-run the script.
+
+#### New C++ classes added to source
+
+This requires a **full unified rebuild** — there is no automated script for adding new code nodes:
+
+```bash
+# 1. Ask Claude Code to run semantic extraction on the new .h/.cpp files.
+#    Claude Code will extract class/method nodes and produce a JSON fragment.
+
+# 2. Claude Code manually merges the new nodes into graphify-out/graph.json.
+#    (New code nodes are added; existing nodes and edges are preserved.)
+
+# 3. Re-cluster and regenerate outputs:
+python graphify_rebuild.py
+```
+
+> **Do not use `graphify_update_docs.py` for this.** That script only scans `VizEngine/docs/vis-psyche-docs/chapters/` — it will not pick up code extractions.
+
+#### Community labels missing or wrong
+
+```bash
+python graphify_rebuild.py
+```
+
+If the script prints `WARNING: N communities have no label: [...]`, it will show a preview of the unlabeled community contents. Add the missing entries to `COMMUNITY_LABELS` in `graphify_rebuild.py` (keyed by integer community ID) and re-run.
+
+#### Full graph rebuild from scratch
+
+Ask Claude Code. This requires running both AST extraction over all C++ source files and LLM extraction over all chapter files, then merging both result sets into a new `graph.json`. This is a manual combined pipeline and should only be needed if `graph.json` is lost or corrupted.
+
+### Reading the outputs
+
+| Output | Path | Use |
+|--------|------|-----|
+| Source of truth | `graphify-out/graph.json` | Raw graph data — do not edit by hand except during manual merges |
+| Report | `graphify-out/GRAPH_REPORT.md` | God nodes (most-connected classes), community map, coverage gaps |
+| Interactive HTML | `graphify-out/graph.html` | Open in browser — zoom, filter by community, inspect edges |
+| Wiki | `graphify-out/wiki/index.md` | One article per community — navigable by Claude Code without loading the full graph |
+| Obsidian vault | `graphify-out/obsidian/` | Open as a vault in Obsidian for graph view and backlink navigation |
+
+**Coverage gaps** in `GRAPH_REPORT.md` list code class nodes with no doc edges, sorted by connectivity. The highest-connectivity gaps are the highest-priority chapters to write next.
+
+> **Never run the `/graphify` skill directly on any path.** It rebuilds `graph.json` from scratch using only the nodes it detects under the given path, destroying semantic code nodes (sandbox app, shaders) that live outside any single subtree, and wiping all manually merged extractions. Always use the scripts above.
 
 ---
 

@@ -2207,7 +2207,7 @@
       "summary": "Model::LoadFromFile is a static factory returning unique_ptr<Model>; returns nullptr on file-not-found, parse error, or empty geometry rather than throwing",
       "file_type": "document",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "ch19_static_factory_pattern"
     },
     {
@@ -2218,7 +2218,7 @@
       "description": "Reading baseColorFactor, roughnessFactor, and baseColorTexture from glTF pbrMetallicRoughness block",
       "file_type": "document",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "ch20_gltf_pbr_material_extraction"
     },
     {
@@ -2493,7 +2493,7 @@
       "description": "OnCreate loads meshes, builds scene objects, loads glTF duck model, configures lighting and camera",
       "file_type": "document",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "ch24_oncreate_asset_loading"
     },
     {
@@ -3914,7 +3914,7 @@
       "author": null,
       "contributor": null,
       "community": 61,
-      "community_label": "Camera Controller & Delta Time",
+      "community_label": "Camera Controller & Delta Time (Code)",
       "id": "a_reference_engine"
     },
     {
@@ -4694,7 +4694,7 @@
       "author": null,
       "contributor": null,
       "community": 61,
-      "community_label": "Camera Controller & Delta Time",
+      "community_label": "Camera Controller & Delta Time (Code)",
       "id": "a_reference_pattern_singleton"
     },
     {
@@ -5853,7 +5853,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L1",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "vizengine_src_vizengine_core_model_cpp"
     },
     {
@@ -5862,7 +5862,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L22",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_model_modelloader"
     },
     {
@@ -5871,7 +5871,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L45",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_getdirectory"
     },
     {
@@ -5880,7 +5880,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L51",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_getfilename"
     },
     {
@@ -5889,7 +5889,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L57",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_endswith"
     },
     {
@@ -5898,7 +5898,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L64",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_getbufferdata"
     },
     {
@@ -5907,7 +5907,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L130",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_validateattributebuffer"
     },
     {
@@ -5916,7 +5916,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L176",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_loadfromfile"
     },
     {
@@ -5925,7 +5925,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L181",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_getmaterialindexformesh"
     },
     {
@@ -5934,7 +5934,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L203",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_modelloader"
     },
     {
@@ -5943,7 +5943,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L209",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_load"
     },
     {
@@ -5952,7 +5952,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L273",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_loadmaterials"
     },
     {
@@ -5961,7 +5961,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L347",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_loadmeshes"
     },
     {
@@ -5970,7 +5970,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L630",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_loadindices"
     },
     {
@@ -5979,7 +5979,7 @@
       "source_file": "VizEngine\\src\\VizEngine\\Core\\Model.cpp",
       "source_location": "L714",
       "community": 18,
-      "community_label": "Camera System",
+      "community_label": "Camera System (Code)",
       "id": "model_modelloader_loadtexture"
     },
     {
