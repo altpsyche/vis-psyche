@@ -201,6 +201,21 @@ if len(deduped_hyp) < len(hyperedges):
     print(f"Deduped hyperedges: {len(hyperedges)} -> {len(deduped_hyp)}")
 hyperedges = deduped_hyp
 
+# ── Remove file/stub nodes before clustering ──────────────────────────────────
+# File-level hub nodes (e.g. Material.cpp) and AST method stubs (e.g. Bind())
+# have edges so they survive isolate removal, but they carry no semantic meaning
+# and form their own micro-communities that pollute clustering and nav hubs.
+# Remove them here so they never enter the Leiden/Louvain pass.
+from graphify.analyze import _is_file_node as _is_stub
+stub_nodes = [n for n in G.nodes() if _is_stub(G, n)]
+G.remove_nodes_from(stub_nodes)
+# Re-run isolate removal — stub removal may disconnect previously-connected nodes
+isolates = [n for n in G.nodes() if G.degree(n) == 0]
+G.remove_nodes_from(isolates)
+if stub_nodes or isolates:
+    print(f"Removed {len(stub_nodes)} file/stub nodes + {len(isolates)} newly-isolated nodes")
+print(f"Pre-cluster: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges")
+
 # ── Boost cross-type edge weights ─────────────────────────────────────────────
 boosted = 0
 for u, v, d in G.edges(data=True):
@@ -269,6 +284,10 @@ try:
     suggested_q = suggest_questions(G, communities, god_node_list)
 except Exception:
     suggested_q = []
+
+# Push deduped hyperedges into G.graph so report.py reads the clean list
+# (G.graph is what report.py accesses via G.graph.get("hyperedges", [])).
+G.graph["hyperedges"] = hyperedges
 
 report_text = generate(
     G=G, communities=communities, cohesion_scores=cohesion,

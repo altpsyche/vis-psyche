@@ -6,6 +6,7 @@
 #include "ShadowPass.h"
 #include "PostProcessPipeline.h"
 #include "PBRMaterial.h"
+#include "LightManager.h"
 #include "VizEngine/OpenGL/Renderer.h"
 #include "VizEngine/OpenGL/Shader.h"
 #include "VizEngine/OpenGL/Texture.h"
@@ -38,6 +39,9 @@ namespace VizEngine
 		// Create post-processing pipeline
 		m_PostProcess = std::make_unique<PostProcessPipeline>(width, height);
 
+		// Create light manager (Chapter 44)
+		m_LightManager = std::make_unique<LightManager>();
+
 		// Default to forward rendering
 		m_ActivePath = std::make_unique<ForwardRenderPath>();
 		m_ActivePath->OnAttach(width, height);
@@ -58,12 +62,18 @@ namespace VizEngine
 			return;
 
 		// =====================================================================
+		// 0. Light upload (Chapter 44) — convert + stream to SSBO before any pass
+		// =====================================================================
+		m_LightManager->Upload();
+		m_LightManager->Bind(0);
+
+		// =====================================================================
 		// 1. Shadow Pass (shared across all render paths)
 		// =====================================================================
 		ShadowData shadowData;
-		if (m_ShadowPass && m_ShadowPass->IsValid() && m_DirLight)
+		if (m_ShadowPass && m_ShadowPass->IsValid() && m_LightManager->HasDirectionalLight())
 		{
-			shadowData = m_ShadowPass->Process(scene, *m_DirLight, renderer);
+			shadowData = m_ShadowPass->Process(scene, m_LightManager->GetDirectionalLight(), renderer);
 		}
 
 		// =====================================================================
@@ -86,10 +96,7 @@ namespace VizEngine
 			passData.BRDFLut = m_BRDFLut;
 			passData.UseIBL = m_UseIBL && m_IrradianceMap && m_PrefilteredMap && m_BRDFLut;
 			passData.IBLIntensity = m_IBLIntensity;
-			passData.DirLight = m_DirLight;
-			passData.PointLightPositions = m_PointLightPositions;
-			passData.PointLightColors = m_PointLightColors;
-			passData.PointLightCount = m_PointLightCount;
+			passData.Lights = m_LightManager.get();
 			passData.LowerHemisphereColor = m_LowerHemisphereColor;
 			passData.LowerHemisphereIntensity = m_LowerHemisphereIntensity;
 			std::copy(std::begin(m_ClearColor), std::end(m_ClearColor), std::begin(passData.ClearColor));
@@ -219,19 +226,19 @@ namespace VizEngine
 		m_BRDFLut = brdfLut;
 	}
 
-	void SceneRenderer::SetPointLights(glm::vec3* positions, glm::vec3* colors, int count)
+	void SceneRenderer::SetDirectionalLight(const DirectionalLight& light)
 	{
-		if (count > 0 && (!positions || !colors))
-		{
-			m_PointLightPositions = nullptr;
-			m_PointLightColors = nullptr;
-			m_PointLightCount = 0;
-			return;
-		}
+		m_LightManager->SetDirectionalLight(light);
+	}
 
-		m_PointLightPositions = positions;
-		m_PointLightColors = colors;
-		m_PointLightCount = count;
+	void SceneRenderer::AddPointLight(const PointLight& light)
+	{
+		m_LightManager->AddPointLight(light);
+	}
+
+	void SceneRenderer::ClearPointLights()
+	{
+		m_LightManager->ClearPointLights();
 	}
 
 	void SceneRenderer::SetClearColor(const float color[4])

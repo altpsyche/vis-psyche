@@ -1,5 +1,6 @@
 // VizEngine/src/VizEngine/Renderer/RenderPassData.h
 // Chapter 43: Shared data structures for the multi-pass rendering pipeline.
+// Chapter 44: Light data replaced with LightManager pointer (SSBO-backed).
 
 #pragma once
 
@@ -18,7 +19,7 @@ namespace VizEngine
 	class PBRMaterial;
 	class Skybox;
 	class FullscreenQuad;
-	struct DirectionalLight;
+	class LightManager;
 
 	/**
 	 * Output from the shadow mapping pass.
@@ -81,11 +82,9 @@ namespace VizEngine
 		bool UseIBL = false;
 		float IBLIntensity = 0.3f;
 
-		// Light data (forward path uses these directly)
-		DirectionalLight* DirLight = nullptr;
-		glm::vec3* PointLightPositions = nullptr;
-		glm::vec3* PointLightColors = nullptr;
-		int PointLightCount = 0;
+		// Light data — LightManager owns lights + SSBO (Chapter 44).
+		// Upload() and Bind() called by SceneRenderer before Execute().
+		LightManager* Lights = nullptr;
 
 		// Lower hemisphere fallback
 		glm::vec3 LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);

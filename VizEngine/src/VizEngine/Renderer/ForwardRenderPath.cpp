@@ -1,6 +1,7 @@
 // VizEngine/src/VizEngine/Renderer/ForwardRenderPath.cpp
 
 #include "ForwardRenderPath.h"
+#include "LightManager.h"
 #include "VizEngine/OpenGL/Renderer.h"
 #include "VizEngine/OpenGL/Shader.h"
 #include "VizEngine/OpenGL/Texture.h"
@@ -57,24 +58,24 @@ namespace VizEngine
 		shader->SetMatrix4fv("u_Projection", data.CameraPtr->GetProjectionMatrix());
 		shader->SetVec3("u_ViewPos", data.CameraPtr->GetPosition());
 
-		// Point lights (guard against null arrays)
-		int lightCount = data.PointLightCount;
-		if (lightCount > 0 && (!data.PointLightPositions || !data.PointLightColors))
-			lightCount = 0;
-
-		shader->SetInt("u_LightCount", lightCount);
-		for (int i = 0; i < lightCount; ++i)
+		// Point lights — SSBO already uploaded + bound by SceneRenderer before Execute().
+		// Just tell the shader how many entries are valid.
+		if (data.Lights)
 		{
-			shader->SetVec3("u_LightPositions[" + std::to_string(i) + "]", data.PointLightPositions[i]);
-			shader->SetVec3("u_LightColors[" + std::to_string(i) + "]", data.PointLightColors[i]);
+			shader->SetInt("u_PointLightCount", data.Lights->GetPointLightCount());
+		}
+		else
+		{
+			shader->SetInt("u_PointLightCount", 0);
 		}
 
-		// Directional light
-		if (data.DirLight)
+		// Directional light — single light, cheap to upload as uniforms.
+		if (data.Lights && data.Lights->HasDirectionalLight())
 		{
+			const auto& dl = data.Lights->GetDirectionalLight();
 			shader->SetBool("u_UseDirLight", true);
-			shader->SetVec3("u_DirLightDirection", data.DirLight->GetDirection());
-			shader->SetVec3("u_DirLightColor", data.DirLight->Diffuse);
+			shader->SetVec3("u_DirLightDirection", dl.GetDirection());
+			shader->SetVec3("u_DirLightColor", dl.Diffuse);
 		}
 		else
 		{
@@ -212,10 +213,16 @@ namespace VizEngine
 		shader.SetMatrix4fv("u_Projection", data.CameraPtr->GetProjectionMatrix());
 		shader.SetVec3("u_ViewPos", data.CameraPtr->GetPosition());
 
-		if (data.DirLight)
+		if (data.Lights && data.Lights->HasDirectionalLight())
 		{
-			shader.SetVec3("u_DirLightDirection", data.DirLight->GetDirection());
-			shader.SetVec3("u_DirLightColor", data.DirLight->Diffuse);
+			const auto& dl = data.Lights->GetDirectionalLight();
+			shader.SetBool("u_UseDirLight", true);
+			shader.SetVec3("u_DirLightDirection", dl.GetDirection());
+			shader.SetVec3("u_DirLightColor", dl.Diffuse);
+		}
+		else
+		{
+			shader.SetBool("u_UseDirLight", false);
 		}
 
 		shader.SetVec3("u_ObjectColor", glm::vec3(obj.Color));

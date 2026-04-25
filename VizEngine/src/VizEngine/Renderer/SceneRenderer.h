@@ -1,6 +1,7 @@
 // VizEngine/src/VizEngine/Renderer/SceneRenderer.h
 // Chapter 43: Central orchestrator for the rendering pipeline.
 // Composes shadow pass, render path, and post-processing into a single Render() call.
+// Chapter 44: Light ownership moved to LightManager (SSBO-backed, no fixed light cap).
 
 #pragma once
 
@@ -13,6 +14,7 @@ namespace VizEngine
 	class RenderPath;
 	class ShadowPass;
 	class PostProcessPipeline;
+	class LightManager;
 	class Scene;
 	class Camera;
 	class Renderer;
@@ -23,6 +25,7 @@ namespace VizEngine
 	class PBRMaterial;
 	class Skybox;
 	struct DirectionalLight;
+	struct PointLight;
 
 	/**
 	 * SceneRenderer orchestrates the full rendering pipeline:
@@ -80,9 +83,11 @@ namespace VizEngine
 		bool GetUseIBL() const { return m_UseIBL; }
 		float GetIBLIntensity() const { return m_IBLIntensity; }
 
-		// Lights
-		void SetDirectionalLight(DirectionalLight* light) { m_DirLight = light; }
-		void SetPointLights(glm::vec3* positions, glm::vec3* colors, int count);
+		// Lights (Chapter 44: owned by LightManager, no raw pointers)
+		void SetDirectionalLight(const DirectionalLight& light);
+		void AddPointLight(const PointLight& light);
+		void ClearPointLights();
+		LightManager* GetLightManager() { return m_LightManager.get(); }
 
 		// Lower hemisphere
 		void SetLowerHemisphereColor(const glm::vec3& color) { m_LowerHemisphereColor = color; }
@@ -156,11 +161,8 @@ namespace VizEngine
 		bool m_UseIBL = true;
 		float m_IBLIntensity = 0.3f;
 
-		// Lights (pointers to SandboxApp-owned data)
-		DirectionalLight* m_DirLight = nullptr;
-		glm::vec3* m_PointLightPositions = nullptr;
-		glm::vec3* m_PointLightColors = nullptr;
-		int m_PointLightCount = 0;
+		// Lights (Chapter 44: owned by LightManager)
+		std::unique_ptr<LightManager> m_LightManager;
 
 		// Lower hemisphere
 		glm::vec3 m_LowerHemisphereColor = glm::vec3(0.15f, 0.15f, 0.2f);
